@@ -109,7 +109,7 @@ const defaults: Settings = {
   speed: 'normal',
   skipWhenFolded: true,
   showEquity: true,
-  panelOpen: true,
+  panelOpen: typeof window === 'undefined' || window.innerWidth >= 1400,
 }
 
 export const useGame = create<State>()(

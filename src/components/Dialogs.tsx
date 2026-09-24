@@ -122,7 +122,7 @@ export function ColorUpDialog() {
         disabled={rackCount(tidy) >= rackCount(rack)}
         onClick={() => apply(tidy)}
       >
-        Color up all ({rackCount(rack)} → {rackCount(tidy)} chips)
+        {rackCount(tidy) < rackCount(rack) ? `Color up all (${rackCount(rack)} → ${rackCount(tidy)} chips)` : 'Your rack is already tidy'}
       </Button>
       <ul className="max-h-[42vh] space-y-2 overflow-y-auto pr-1">
         {rows.length === 0 && <li className="text-[14px] text-[#bfb49a]">Your rack is already neat.</li>}
@@ -140,8 +140,9 @@ export function ColorUpDialog() {
                   aria-label={`Exchange ${formatMoney(d)} chips for ${formatMoney(t)} chips`}
                   className="flex items-center gap-1 rounded-lg bg-[#1b4a32] px-2 py-1 text-[12px] font-bold text-[#f6e6b4] ring-1 ring-inset ring-[#d4af5a]/30 transition hover:ring-[#f3dc9a]"
                 >
-                  {Math.floor(n / (t / d)) * (t / d)}→{Math.floor(n / (t / d))}
+                  {Math.floor(n / (t / d)) * (t / d)} → {Math.floor(n / (t / d))}
                   <Chip denom={t} size={20} />
+                  {chipLabel(t)}
                 </button>
               ))}
             </div>
