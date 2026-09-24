@@ -114,7 +114,8 @@ class Controller {
     const stack = this.engine?.seats()[HERO]?.stack ?? 0
     this.engine = null
     setAmbient(false)
-    set((s) => ({ screen: 'lobby', bankroll: s.bankroll + stack, seated: 0, table: null, flyers: [], legal: null, dialog: null }))
+    set((s) => ({ screen: 'lobby', bankroll: s.bankroll + stack, seated: 0, table: null, flyers: [], legal: null, dialog: null, focus: false }))
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
   }
 
   private alive = (gen: number) => gen === this.gen && this.engine !== null

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { set, useGame } from '../game/store'
 import { game } from '../game/controller'
 import { formatMoney } from '../engine/chips'
@@ -11,6 +12,16 @@ import { HandPanel } from '../components/HandPanel'
 import { BustDialog, ColorUpDialog, LogDrawer } from '../components/Dialogs'
 import { Button } from '../components/ui/kit'
 import { Chip } from '../components/chips/Chip'
+
+const EXPAND = 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'
+const SHRINK = 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5'
+
+/** Full screen: browser fullscreen + hide everything except the table and hand rankings. */
+function setFocus(on: boolean) {
+  set({ focus: on, ...(on ? { dialog: null } : {}) })
+  if (on && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {})
+  if (!on && document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+}
 
 const Icon = ({ d }: { d: string }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -46,6 +57,10 @@ function Hud() {
         >
           <Icon d={paused ? 'M7 5l12 7-12 7z' : 'M8 5v14M16 5v14'} />
           {paused ? 'Resume' : 'Pause'}
+        </Button>
+        <Button size="sm" variant="wood" onClick={() => setFocus(true)} title="Full screen: just the table and hand rankings">
+          <Icon d={EXPAND} />
+          Full screen
         </Button>
         <Button size="sm" variant="wood" onClick={() => set((s) => ({ dialog: s.dialog === 'log' ? null : 'log' }))}>
           <Icon d="M4 6h16M4 12h16M4 18h10" />
@@ -85,6 +100,13 @@ function ColorUpButton() {
 }
 
 export function TableScreen() {
+  const focus = useGame((s) => s.focus)
+  // Leaving browser fullscreen (Esc, F11) also leaves focus mode.
+  useEffect(() => {
+    const onChange = () => !document.fullscreenElement && set({ focus: false })
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
   return (
     <div className="flex h-full" style={{ background: 'radial-gradient(ellipse at 50% 42%, #2b1a0f 0%, #140c07 45%, #060403 100%)' }}>
       <HandPanel />
@@ -97,7 +119,7 @@ export function TableScreen() {
           }}
           aria-hidden
         />
-        <div className="absolute inset-x-0 bottom-0 top-12">
+        <div className={`absolute inset-x-0 bottom-0 ${focus ? 'top-0' : 'top-12'}`}>
         <Stage>
           <TableArt />
           <Board />
@@ -110,9 +132,20 @@ export function TableScreen() {
           <Flyers />
         </Stage>
         </div>
-        <Hud />
+        {focus ? (
+          <button
+            onClick={() => setFocus(false)}
+            aria-label="Exit full screen"
+            title="Exit full screen (Esc)"
+            className="absolute right-3 top-3 z-30 rounded-lg bg-black/40 p-2 text-[#e9dcb8] opacity-50 ring-1 ring-[#d4af5a]/30 transition hover:opacity-100"
+          >
+            <Icon d={SHRINK} />
+          </button>
+        ) : (
+          <Hud />
+        )}
       </main>
-      <LogDrawer />
+      {!focus && <LogDrawer />}
       <BustDialog />
       <ColorUpDialog />
     </div>

@@ -100,6 +100,8 @@ interface State {
   dialog: null | 'settings' | 'bust' | 'colorup' | 'log'
   paused: boolean
   colorUpHint: boolean
+  /** Full-screen mode: only the table and hand rankings. */
+  focus: boolean
 }
 
 const defaults: Settings = {
@@ -137,6 +139,7 @@ export const useGame = create<State>()(
         dialog: null,
         paused: false,
         colorUpHint: false,
+        focus: false,
     }),
     {
       name: 'cards:v1',
