@@ -12,10 +12,10 @@ export const CardFace = memo(function CardFace({ code }: { code: string }) {
   const col = suitColor(s)
   const index = (
     <g>
-      <text x="26" y="50" textAnchor="middle" fontFamily="var(--font-serif)" fontWeight="700" fontSize={label.length > 1 ? 36 : 42} fill={col} letterSpacing="-2">
+      <text x="30" y="60" textAnchor="middle" fontFamily="var(--font-serif)" fontWeight="800" fontSize={label.length > 1 ? 50 : 60} fill={col} letterSpacing="-3">
         {label}
       </text>
-      <Suit s={s} x={26} y={74} size={26} />
+      <Suit s={s} x={30} y={90} size={32} />
     </g>
   )
   let body

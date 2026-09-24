@@ -85,7 +85,7 @@ export function ActionBar() {
       style={{ left: 1150, top: 824, width: 430, zIndex: 30 }}
       aria-label="Your actions"
     >
-      <div className="flex h-5 items-center justify-between text-[13px]">
+      <div className="flex h-6 items-center justify-between text-[15px]">
         {waiting ? (
           <span className="text-[#bfb49a]">{heroSeat?.folded ? 'You folded, finishing the hand…' : 'Waiting for opponents…'}</span>
         ) : check?.hint ? (
@@ -133,7 +133,7 @@ export function ActionBar() {
             play('chip', { minGap: 70, volume: 0.6 })
           }}
         />
-        <span className="w-20 shrink-0 text-right font-serif text-[15px] font-bold tabular-nums text-[#f6e6b4]">
+        <span className="w-24 shrink-0 text-right font-serif text-[19px] font-bold tabular-nums text-[#f6e6b4]">
           {canSize ? formatMoney(sliderVal) : '—'}
         </span>
       </div>

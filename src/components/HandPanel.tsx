@@ -20,12 +20,12 @@ function Mini({ code, lit }: { code: string; lit: boolean }) {
   const red = code[1] === 'h' || code[1] === 'd'
   return (
     <span
-      className={`inline-flex h-[26px] w-[19px] flex-col items-center justify-center rounded-[3px] bg-[linear-gradient(180deg,#fffdf8,#ece5d3)] font-serif text-[10px] font-bold leading-[10px] shadow-[0_1px_2px_rgba(0,0,0,.6)] transition ${
+      className={`inline-flex h-[30px] w-[22px] flex-col items-center justify-center rounded-[3px] bg-[linear-gradient(180deg,#fffdf8,#ece5d3)] font-serif text-[13px] font-bold leading-[12px] shadow-[0_1px_2px_rgba(0,0,0,.6)] transition ${
         red ? 'text-[#c8102e]' : 'text-[#15110e]'
       } ${lit ? '' : 'opacity-80'}`}
     >
       <span>{code[0] === 'T' ? '10' : code[0]}</span>
-      <span className="text-[10px]">{SUIT[code[1]]}</span>
+      <span className="text-[11px]">{SUIT[code[1]]}</span>
     </span>
   )
 }

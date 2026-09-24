@@ -97,12 +97,12 @@ const Seat = memo(function Seat({ seat, v, isHero }: { seat: number; v: SeatView
           </div>
         )}
         <div
-          className={`relative z-10 min-w-[132px] rounded-xl border px-3 py-1 text-center shadow-[0_8px_20px_-6px_rgba(0,0,0,.9)] ${
+          className={`relative z-10 min-w-[140px] rounded-xl border px-3 py-1 text-center shadow-[0_8px_20px_-6px_rgba(0,0,0,.9)] ${
             isHero ? '' : '-mt-3'
           } ${v.winner ? 'border-[#f3dc9a] bg-[linear-gradient(180deg,#3a2a10,#1a1206)]' : 'border-[#d4af5a]/45 bg-[linear-gradient(180deg,#1b1511,#0c0907)]'} ${dim ? 'opacity-60' : ''}`}
         >
-          <div className="truncate text-[13px] font-semibold tracking-wide text-[#e9dcb8]">{v.name}</div>
-          <div className="font-serif text-[17px] font-bold tabular-nums leading-tight text-[#f6e6b4]">
+          <div className="truncate text-[15px] font-semibold tracking-wide text-[#e9dcb8]">{v.name}</div>
+          <div className="font-serif text-[22px] font-bold tabular-nums leading-tight text-[#f6e6b4]">
             {v.allIn && v.stack === 0 ? 'ALL-IN' : formatMoney(v.stack)}
           </div>
         </div>
@@ -110,7 +110,7 @@ const Seat = memo(function Seat({ seat, v, isHero }: { seat: number; v: SeatView
       {v.status && (
         <div
           key={v.status}
-          className={`absolute left-0 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-0.5 text-[12px] font-bold uppercase tracking-wider ring-1 ${statusStyle(v.status)}`}
+          className={`absolute left-0 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-0.5 text-[13px] font-bold uppercase tracking-wider ring-1 ${statusStyle(v.status)}`}
           style={{ top: isHero ? -64 : -96, animation: 'pop-in .22s ease-out', zIndex: 30 }}
         >
           {v.status}
@@ -143,7 +143,7 @@ function HoleCards({ seat, v, isHero }: { seat: number; v: SeatView; isHero: boo
       })}
       {v.handLabel && v.cards.length > 0 && (
         <div
-          className="absolute -translate-x-1/2 whitespace-nowrap rounded-md bg-black/75 px-2 py-0.5 text-[12px] font-semibold text-[#f6e6b4] ring-1 ring-[#d4af5a]/40"
+          className="absolute -translate-x-1/2 whitespace-nowrap rounded-md bg-black/75 px-2 py-0.5 text-[14px] font-semibold text-[#f6e6b4] ring-1 ring-[#d4af5a]/40"
           style={{ ...at(holeCardPos(seat, 0).x + (isHero ? 54 : 13), holeCardPos(seat, 0).y + (w * 1.4) / 2 + 4), zIndex: 26, animation: 'pop-in .25s ease-out' }}
         >
           {v.handLabel}

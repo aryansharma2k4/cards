@@ -84,7 +84,7 @@ export function Rack() {
                 </span>
               )}
             </div>
-            <span className="mt-1 rounded bg-black/40 px-1.5 text-[11px] font-bold tabular-nums text-[#efe6cf] group-enabled:group-hover:text-[#fff3c4]">
+            <span className="mt-1 rounded bg-black/40 px-1.5 text-[14px] font-bold tabular-nums text-[#efe6cf] group-enabled:group-hover:text-[#fff3c4]">
               {chipLabel(d)} <span className="opacity-60">×{n}</span>
             </span>
           </button>
@@ -99,7 +99,7 @@ export function Rack() {
           style={{ left: PILE.x, top: PILE.y, transform: 'translate(-50%, -50%)', zIndex: 27 }}
         >
           <ChipCluster chips={shown} width={40} max={16} />
-          <span className="mt-1 whitespace-nowrap rounded-full bg-[linear-gradient(180deg,#fbe7a6,#c9a24a)] px-2.5 py-0.5 text-[13px] font-bold tabular-nums text-[#241808] shadow-md">
+          <span className="mt-1 whitespace-nowrap rounded-full bg-[linear-gradient(180deg,#fbe7a6,#c9a24a)] px-3 py-0.5 text-[17px] font-bold tabular-nums text-[#241808] shadow-md">
             {formatMoney(total)}
           </span>
         </button>

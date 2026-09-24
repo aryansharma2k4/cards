@@ -34,7 +34,7 @@ export const ChipPile = memo(function ChipPile({ amount, width = 34, label = tru
         ))}
       </div>
       {label && (
-        <div className="rounded-full bg-black/60 px-2.5 py-0.5 font-sans text-[13px] font-bold tabular-nums text-[#f6e6b4] ring-1 ring-[#d4af5a]/40 backdrop-blur-sm">
+        <div className="rounded-full bg-black/60 px-3 py-0.5 font-sans text-[17px] font-bold tabular-nums text-[#f6e6b4] ring-1 ring-[#d4af5a]/40 backdrop-blur-sm">
           {formatMoney(amount)}
         </div>
       )}

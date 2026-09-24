@@ -25,7 +25,7 @@ function Hud() {
   const bankroll = useGame((s) => s.bankroll)
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3">
-      <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-black/45 px-3 py-2 text-[13px] text-[#d8ccb0] ring-1 ring-[#d4af5a]/25 backdrop-blur-sm">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-black/45 px-3 py-2 text-[15px] text-[#d8ccb0] ring-1 ring-[#d4af5a]/25 backdrop-blur-sm">
         <span>
           Blinds <b className="text-[#f6e6b4]">{formatMoney(table.sb)}/{formatMoney(table.bb)}</b>
         </span>

@@ -58,15 +58,15 @@ export function Court({ rank, s }: { rank: string; s: string }) {
       <text x="125" y="162" textAnchor="middle" fontFamily="var(--font-serif)" fontWeight="700" fontSize="54" fill={col}>
         {rank}
       </text>
-      <Suit s={s} x={84} y={126} size={24} />
-      <Suit s={s} x={166} y={126} size={24} />
+      <Suit s={s} x={90} y={126} size={20} />
+      <Suit s={s} x={160} y={126} size={20} />
     </g>
   )
   return (
     <g>
-      <rect x="52" y="58" width="146" height="234" rx="8" fill="#fbf6e9" stroke={col} strokeWidth="2.2" />
-      <rect x="58" y="64" width="134" height="222" rx="6" fill="none" stroke="#c9a24a" strokeWidth="1.2" />
-      <path d="M58 175 L192 175" stroke="#c9a24a" strokeWidth="1" strokeDasharray="2 3" />
+      <rect x="62" y="58" width="126" height="234" rx="8" fill="#fbf6e9" stroke={col} strokeWidth="2.2" />
+      <rect x="68" y="64" width="114" height="222" rx="6" fill="none" stroke="#c9a24a" strokeWidth="1.2" />
+      <path d="M68 175 L182 175" stroke="#c9a24a" strokeWidth="1" strokeDasharray="2 3" />
       <g clipPath="url(#court-top)">{half}</g>
       <g transform="rotate(180 125 175)">
         <g clipPath="url(#court-top)">{half}</g>
