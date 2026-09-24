@@ -1,5 +1,5 @@
 import { Table } from 'poker-ts'
-import { describeHand, type HandInfo } from './evaluate'
+import { describeHand, bestHands, type HandInfo } from './evaluate'
 
 /** Card code like "As", "Td", "7c". */
 export type Card = string
@@ -27,6 +27,8 @@ export interface SeatState {
 
 export interface PotResult {
   amount: number
+  /** Players who could win this pot. */
+  eligible: number[]
   winners: number[]
   /** Chips each winner receives from this pot. */
   shares: Record<number, number>
@@ -48,16 +50,25 @@ const SUIT = { clubs: 'c', diamonds: 'd', hearts: 'h', spades: 's' } as const
 const toCode = (c: { rank: string; suit: keyof typeof SUIT }): Card => c.rank + SUIT[c.suit]
 
 /**
- * Thin typed wrapper over poker-ts. It owns hand progression (ending betting
- * rounds, running out boards, showdown) and turns it into a flat event stream,
- * enforcing card visibility: only the hero's hole cards ever leave this class
- * before showdown, and folded hands never do.
+ * Typed wrapper over poker-ts. poker-ts deals, enforces betting order and legal
+ * bet sizes; this class drives hand progression and turns it into a flat event
+ * stream, enforcing card visibility (only the hero's hole cards leave before
+ * showdown; folded hands never do).
+ *
+ * Pots and payouts are computed here from each player's contributions rather
+ * than taken from poker-ts: its pot code (1.5.0) mishandles players who go
+ * all-in before the river (drops them from pot eligibility and pays them into
+ * a null reference). Final stacks are written back through its public API.
  */
 export class PokerEngine {
   private table: InstanceType<typeof Table>
   private listeners: Listener[] = []
   private hole: (Card[] | null)[] = []
   private folded = new Set<number>()
+  /** Stack of each dealt-in seat when the hand began (before blinds). */
+  private start: Record<number, number> = {}
+  /** Stack a player had left when they folded. */
+  private foldStack: Record<number, number> = {}
   private lastAggressor: number | null = null
   private boardSeen = 0
   private btn = 0
@@ -84,14 +95,7 @@ export class PokerEngine {
   standUp(seat: number) {
     this.table.standUp(seat)
   }
-  setBlinds(smallBlind: number, bigBlind: number) {
-    this.table.setForcedBets({ smallBlind, bigBlind })
-  }
 
-  get blinds() {
-    const f = this.table.forcedBets()
-    return { small: f.smallBlind, big: f.bigBlind }
-  }
   get inProgress(): boolean {
     return this.table.isHandInProgress()
   }
@@ -108,22 +112,23 @@ export class PokerEngine {
   get board(): Card[] {
     return this.inProgress ? this.table.communityCards().map(toCode) : []
   }
-  /** Seats with chips at the table (stack + current bet), or null when empty. */
+
+  /** Stack and current-street bet for every occupied seat. */
   seats(): (SeatState | null)[] {
-    const src = this.inProgress ? this.table.handPlayers() : this.table.seats()
-    const table = this.table.seats()
-    return table.map((s, i) => {
+    return this.table.seats().map((s, i) => {
       if (!s) return null
-      const h = src[i]
-      return h ? { stack: h.stack, bet: h.betSize } : { stack: s.stack, bet: 0 }
+      if (this.inProgress && this.folded.has(i)) return { stack: this.foldStack[i], bet: 0 }
+      return { stack: s.stack, bet: this.inProgress ? s.betSize : 0 }
     })
+  }
+  private contributed(seat: number): number {
+    const s = this.seats()[seat]
+    return (this.start[seat] ?? 0) - (s?.stack ?? 0)
   }
   /** Chips in the middle, including bets on the current street. */
   potTotal(): number {
     if (!this.inProgress) return 0
-    const pots = this.table.pots().reduce((a, p) => a + p.size, 0)
-    const bets = this.table.handPlayers().reduce((a, p) => a + (p?.betSize ?? 0), 0)
-    return pots + bets
+    return Object.keys(this.start).reduce((a, s) => a + this.contributed(Number(s)), 0)
   }
   /** Seats still holding cards this hand. */
   activeSeats(): number[] {
@@ -139,9 +144,10 @@ export class PokerEngine {
   getLegalActions(seat: number): LegalActions | null {
     if (this.toAct !== seat) return null
     const { actions, chipRange } = this.table.legalActions()
-    const me = this.table.handPlayers()[seat]!
-    const biggest = Math.max(...this.table.handPlayers().map((p) => p?.betSize ?? 0))
-    const toCall = Math.min(biggest - me.betSize, me.stack)
+    const seats = this.seats()
+    const me = seats[seat]!
+    const biggest = Math.max(...seats.map((p) => p?.bet ?? 0))
+    const toCall = Math.min(biggest - me.bet, me.stack)
     const canSize = actions.includes('bet') || actions.includes('raise')
     return {
       seat,
@@ -153,35 +159,31 @@ export class PokerEngine {
 
   startHand() {
     this.folded.clear()
+    this.foldStack = {}
     this.lastAggressor = null
     this.boardSeen = 0
-    const before = this.table.seats()
-    this.table.startHand()
-    this.btn = this.table.button()
+    this.start = {}
     const seats: number[] = []
-    const stacks: Record<number, number> = {}
-    before.forEach((s, i) => {
+    this.table.seats().forEach((s, i) => {
       if (s) {
         seats.push(i)
-        stacks[i] = s.stack
+        this.start[i] = s.stack
       }
     })
+    this.table.startHand()
+    this.btn = this.table.button()
     this.hole = this.table.holeCards().map((h) => (h ? h.map(toCode) : null))
-    this.emit({ type: 'handStart', button: this.button, seats, stacks })
+    this.emit({ type: 'handStart', button: this.btn, seats, stacks: { ...this.start } })
 
     // Blinds: poker-ts has already posted them; report SB before BB.
-    const players = this.table.handPlayers()
-    const posted = seats.filter((i) => (players[i]?.betSize ?? 0) > 0)
-    const order = this.clockwiseFrom(this.button, posted, seats.length === 2)
+    const now = this.seats()
+    const posted = seats.filter((i) => (now[i]?.bet ?? 0) > 0)
+    const order = this.clockwiseFrom(this.btn, posted, seats.length === 2)
     order.forEach((seat, k) =>
-      this.emit({ type: 'blind', seat, amount: players[seat]!.betSize, kind: k === 0 && order.length > 1 ? 'small' : 'big' }),
+      this.emit({ type: 'blind', seat, amount: now[seat]!.bet, kind: k === 0 && order.length > 1 ? 'small' : 'big' }),
     )
 
-    this.emit({
-      type: 'deal',
-      seats: this.clockwiseFrom(this.button, seats, false),
-      hero: this.hole[this.heroSeat] ?? null,
-    })
+    this.emit({ type: 'deal', seats: this.clockwiseFrom(this.btn, seats, false), hero: this.hole[this.heroSeat] ?? null })
     this.advance()
   }
 
@@ -192,24 +194,25 @@ export class PokerEngine {
     const sized = action.type === 'bet' || action.type === 'raise'
     if (sized) {
       const amt = action.amount
-      if (amt === undefined || amt < legal.min! || amt > legal.max!)
-        throw new Error(`Bet ${amt} outside ${legal.min}–${legal.max}`)
+      if (amt === undefined || amt < legal.min! || amt > legal.max!) throw new Error(`Bet ${amt} outside ${legal.min}–${legal.max}`)
     }
-    const beforeStack = this.table.handPlayers()[seat]!.stack
+    const beforeStack = this.seats()[seat]!.stack
+    if (action.type === 'fold') {
+      this.foldStack[seat] = beforeStack
+      this.folded.add(seat)
+    }
     this.table.actionTaken(action.type, sized ? action.amount : undefined)
-    if (action.type === 'fold') this.folded.add(seat)
     if (sized) this.lastAggressor = seat
 
-    const p = this.table.handPlayers()[seat]
-    const stack = p?.stack ?? beforeStack
+    const after = this.seats()[seat]!
     this.emit({
       type: 'action',
       seat,
       action: action.type,
-      amount: action.type === 'fold' ? 0 : beforeStack - stack,
-      bet: p?.betSize ?? 0,
-      stack,
-      allIn: action.type !== 'fold' && stack === 0,
+      amount: beforeStack - after.stack,
+      bet: after.bet,
+      stack: after.stack,
+      allIn: action.type !== 'fold' && after.stack === 0,
     })
     this.advance()
   }
@@ -244,16 +247,21 @@ export class PokerEngine {
   }
 
   private finish() {
-    const pots = this.table.pots().map((p) => ({ size: p.size, eligible: [...p.eligiblePlayers] }))
     const board = this.table.communityCards().map(toCode)
-    const contenders = this.activeSeats()
-    const uncontested = contenders.length === 1
-    this.table.showdown()
+    const dealt = Object.keys(this.start).map(Number)
+    const contrib: Record<number, number> = {}
+    const stacks: Record<number, number> = {}
+    for (const s of dealt) {
+      contrib[s] = this.contributed(s)
+      stacks[s] = this.start[s] - contrib[s]
+    }
+    const live = this.activeSeats()
+    const uncontested = live.length === 1
 
     if (!uncontested) {
       this.emit({
         type: 'showdown',
-        reveals: this.showdownOrder(contenders).map((seat) => ({
+        reveals: this.showdownOrder(live).map((seat) => ({
           seat,
           cards: this.hole[seat]!,
           hand: describeHand([...this.hole[seat]!, ...board]),
@@ -261,26 +269,33 @@ export class PokerEngine {
       })
     }
 
-    const winners = this.table.winners()
-    const results: PotResult[] = pots.map((pot, i) => {
-      const ws = pot.eligible.length === 1 ? pot.eligible : (winners[i] ?? []).map((w) => w[0])
-      return { amount: pot.size, winners: ws, shares: splitPot(pot.size, ws, this.button, this.numSeats) }
+    const pots = buildPots(contrib, live).map((pot) => {
+      const winners =
+        pot.eligible.length === 1 ? pot.eligible : bestHands(Object.fromEntries(pot.eligible.map((s) => [s, [...this.hole[s]!, ...board]])))
+      return { ...pot, winners, shares: splitPot(pot.amount, winners, this.btn, this.numSeats) }
     })
-    const after = this.table.seats()
-    const stacks: Record<number, number> = {}
-    after.forEach((s, i) => {
-      if (s || this.hole[i]) stacks[i] = s?.stack ?? 0 // busted players are stood up by poker-ts
-    })
-    this.emit({ type: 'handEnd', pots: results, stacks, board, uncontested })
+    for (const p of pots) for (const [s, amt] of Object.entries(p.shares)) stacks[Number(s)] += amt
+
+    // Let poker-ts close the hand, then make its stacks match ours.
+    try {
+      this.table.showdown()
+    } catch {
+      // Its payout can assert in the all-in case described above; the hand is over either way.
+    }
+    for (const s of dealt) {
+      const cur = this.table.seats()[s]
+      if (cur?.stack === stacks[s]) continue
+      if (cur) this.table.standUp(s)
+      if (stacks[s] > 0) this.table.sitDown(s, stacks[s])
+    }
+    this.emit({ type: 'handEnd', pots, stacks, board, uncontested })
   }
 
   /** Last aggressor on the final street shows first, else first seat left of the button. */
   private showdownOrder(seats: number[]): number[] {
-    const start = this.lastAggressor !== null && seats.includes(this.lastAggressor) ? this.lastAggressor : null
-    const order = this.clockwiseFrom(this.button, seats, false)
-    if (start === null) return order
-    const k = order.indexOf(start)
-    return [...order.slice(k), ...order.slice(0, k)]
+    const order = this.clockwiseFrom(this.btn, seats, false)
+    const k = this.lastAggressor === null ? -1 : order.indexOf(this.lastAggressor)
+    return k < 0 ? order : [...order.slice(k), ...order.slice(0, k)]
   }
 
   /** `seats` ordered clockwise starting after `from` (or at it when `inclusive`). */
@@ -290,7 +305,28 @@ export class PokerEngine {
   }
 }
 
-/** Mirror poker-ts's split: equal shares, odd chips clockwise from the button. */
+/**
+ * Main pot + side pots from total contributions. Each live player's total is a
+ * level; the pot up to a level is shared by live players who reached it.
+ * Folded players' chips stay in whichever pots they reached.
+ */
+export function buildPots(contrib: Record<number, number>, live: number[]): { amount: number; eligible: number[] }[] {
+  const levels = [...new Set(live.map((s) => contrib[s]))].sort((a, b) => a - b)
+  const all = Object.keys(contrib).map(Number)
+  const pots: { amount: number; eligible: number[] }[] = []
+  let prev = 0
+  for (const level of levels) {
+    const amount = all.reduce((a, s) => a + Math.min(contrib[s], level) - Math.min(contrib[s], prev), 0)
+    if (amount > 0) pots.push({ amount, eligible: live.filter((s) => contrib[s] >= level) })
+    prev = level
+  }
+  // A folded player can't out-contribute every live player, but never drop chips if they did.
+  const extra = all.reduce((a, s) => a + Math.max(0, contrib[s] - prev), 0)
+  if (extra && pots.length) pots[pots.length - 1].amount += extra
+  return pots
+}
+
+/** Equal shares, odd chips clockwise from the button (standard rule). */
 export function splitPot(amount: number, winners: number[], button: number, numSeats: number) {
   const shares: Record<number, number> = {}
   if (!winners.length) return shares

@@ -78,10 +78,13 @@ export function colorUpTarget(d: number): number | undefined {
   return DENOMS.find((t) => t > d && t % d === 0)
 }
 
-/** Swap `ratio` chips of `from` for one chip of its color-up target, as many times as possible (or `times`). */
-export function colorUp(rack: Rack, from: number, times = Infinity): Rack {
-  const to = colorUpTarget(from)
-  if (!to) return rack
+/** Bigger denominations `from` chips can be exchanged into, given how many are in the rack. */
+export const colorUpOptions = (rack: Rack, from: number) =>
+  DENOMS.filter((t) => t > from && t % from === 0 && (rack[from] ?? 0) >= t / from)
+
+/** Swap `from` chips for `to` chips (default: next denomination up), as many times as possible (or `times`). */
+export function colorUp(rack: Rack, from: number, to = colorUpTarget(from), times = Infinity): Rack {
+  if (!to || to % from) return rack
   const ratio = to / from
   const n = Math.min(times, Math.floor((rack[from] ?? 0) / ratio))
   const r = { ...rack }

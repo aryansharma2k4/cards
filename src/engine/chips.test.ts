@@ -27,5 +27,6 @@ describe('chips', () => {
     expect(r).toEqual({ 100: 3, 500: 4, 5: 1 })
     expect(rackTotal(r)).toBe(2305)
     expect(rackCount(colorUp({ 20: 7 }, 20))).toBe(3) // 5×20 → 1×100
+    expect(colorUp({ 5: 25 }, 5, 100)).toEqual({ 5: 5, 100: 1 })
   })
 })

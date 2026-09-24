@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CardRank, CardSuit } from 'poker-ts/dist/lib/card'
-import { PokerEngine, splitPot, type EngineEvent } from './engine'
+import { PokerEngine, buildPots, splitPot, type EngineEvent } from './engine'
 import { describeHand } from './evaluate'
 
 function setup(stacks: number[], blinds = [1, 2], hero = 0) {
@@ -117,6 +117,17 @@ describe('all-in and side pots', () => {
   })
 })
 
+describe('buildPots', () => {
+  it('caps pots at each all-in level; folded chips stay in', () => {
+    // A all-in 50, B all-in 100, C 200, D folded after putting in 30
+    expect(buildPots({ 0: 50, 1: 100, 2: 200, 3: 30 }, [0, 1, 2])).toEqual([
+      { amount: 180, eligible: [0, 1, 2] },
+      { amount: 100, eligible: [1, 2] },
+      { amount: 100, eligible: [2] }, // uncalled excess goes back to C
+    ])
+  })
+})
+
 describe('split pots', () => {
   it('splits evenly when the board plays', () => {
     const { engine, events } = setup([100, 100])
@@ -189,5 +200,30 @@ describe('describeHand', () => {
     expect(wheel.label).toBe('Straight, Five high')
     expect(wheel.cards).toContain('As')
     expect(describeHand(['As', 'Ad']).category).toBe(1)
+  })
+})
+
+describe('all-in on a later street', () => {
+  it('pays a player who went all-in before the river (poker-ts payout bug)', () => {
+    const { engine, events } = setup([60, 1000, 1000])
+    // seat0 flops a set of aces; seats 1 and 2 have nothing
+    rig(engine, ['As', 'Ad', '7c', '2h', '8d', '3s', 'Ah', '9c', '5d', 'Kh', 'Jc'])
+    engine.startHand()
+    while (engine.street === 'preflop') passive(engine, engine.toAct!)
+    // flop: seat 0 shoves when it acts, everyone else calls
+    while (engine.street === 'flop' && engine.toAct !== null) {
+      const seat = engine.toAct
+      const l = engine.getLegalActions(seat)!
+      if (seat === 0 && l.max !== undefined) engine.act(0, { type: l.actions.includes('bet') ? 'bet' : 'raise', amount: l.max })
+      else passive(engine, seat)
+    }
+    const shove = events.find((e) => e.type === 'action' && e.seat === 0 && e.allIn)
+    expect(shove).toMatchObject({ bet: 58, stack: 0 })
+    while (engine.toAct !== null) passive(engine, engine.toAct)
+    const end = events.find((e) => e.type === 'handEnd')!
+    if (end.type !== 'handEnd') throw 0
+    expect(end.pots[0].winners).toEqual([0])
+    expect(end.stacks[0]).toBe(180)
+    expect(Object.values(end.stacks).reduce((a, b) => a + b, 0)).toBe(2060)
   })
 })

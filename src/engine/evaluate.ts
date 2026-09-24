@@ -48,3 +48,11 @@ export function describeHand(cards: string[]): HandInfo {
     cards: h.cards.map((c) => (c.value === '1' ? 'A' : c.value) + c.suit),
   }
 }
+
+/** Seats holding the best hand (several on a tie). */
+export function bestHands(hands: Record<number, string[]>): number[] {
+  const seats = Object.keys(hands).map(Number)
+  const solved = seats.map((s) => Hand.solve(hands[s]))
+  const win = new Set(Hand.winners(solved))
+  return seats.filter((_, i) => win.has(solved[i]))
+}
