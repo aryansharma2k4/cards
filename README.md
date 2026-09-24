@@ -18,6 +18,27 @@ npm run build    # typecheck + production build
 - **Color up** (bottom right) swaps small chips for bigger ones. It lights up when your rack gets crowded.
 - Leaving the table returns your stack to the bankroll. So does closing the page.
 
+## Stats, saving and sync
+
+- **Saved on this device:** your bankroll (including chips on the table, so a refresh or a crash never loses them), settings, and every hand you play.
+- **Stats** (Lobby → Stats): net-worth graph, profit by session and by position, win rate in big blinds per 100 hands, VPIP/PFR, showdown numbers, and a list of hands. Click a hand to see it street by street, with each of your decisions judged against the pot odds.
+- **Cloud sync** (Settings → Cloud sync): create an account with email and password. Your balance, sessions and hands sync to Postgres on [Neon](https://neon.com) in Singapore. On a new device, sign in and it pulls everything down. For the balance, the most recent change wins.
+
+### Sync backend (for the phone app too)
+
+| Piece | Where |
+|---|---|
+| Accounts | Neon Auth (managed Better Auth), email + password |
+| API | Neon Function `sync` → [`api/sync.ts`](api/sync.ts), declared in [`neon.ts`](neon.ts) |
+| Data | Postgres tables `profiles`, `sessions`, `hands` (created by the function on first use) |
+
+A client signs in with the auth URL (`@neondatabase/auth`, or Better Auth's REST endpoints `POST /sign-in/email` then `GET /token`) and calls the function with `Authorization: Bearer <jwt>`:
+
+- `GET /state?since=<ms>` returns `{ balance, balanceAt, sessions, hands }`
+- `POST /sync` with `{ balance, balanceAt, sessions, hands }` returns the same shape. Hands and sessions are keyed by UUIDs, so re-sending them is harmless. The balance only changes if `balanceAt` is newer than the stored one.
+
+Every query is scoped to the token's user id, so one user can't read or change another user's rows. Deploy changes with `npx neon deploy --env .env.local`.
+
 ## Architecture
 
 ```
@@ -34,6 +55,8 @@ src/
   components/  table art, SVG cards, SVG chips, seats, rack, action bar, dialogs, hand panel
   screens/     Lobby, TableScreen
   audio/       Howler sound bank
+  cloud/       Neon Auth client + sync
+api/           Neon Function: the sync API
 ```
 
 The UI never asks the engine for hidden information. The engine emits events (`handStart`, `blind`, `deal`, `action`, `collect`, `street`, `showdown`, `handEnd`), and the director plays each one in turn. Opponents' hole cards reach the DOM only when they are revealed at showdown. Folded hands never reach it at all.

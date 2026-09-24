@@ -76,6 +76,8 @@ export interface Settings {
 interface State {
   screen: 'lobby' | 'table' | 'stats'
   bankroll: number
+  /** When your balance (bankroll + table chips) last changed, ms. 0 = never touched on this device. Cloud sync uses it. */
+  balanceAt: number
   /** Chips on the table right now (returned to the bankroll if the page closes). */
   seated: number
   settings: Settings
@@ -119,6 +121,7 @@ export const useGame = create<State>()(
     (): State => ({
         screen: 'lobby',
         bankroll: START_BANKROLL,
+        balanceAt: 0,
         seated: 0,
         settings: defaults,
         table: null,
@@ -143,12 +146,12 @@ export const useGame = create<State>()(
     }),
     {
       name: 'cards:v1',
-      partialize: (s) => ({ bankroll: s.bankroll, seated: s.seated, settings: s.settings }),
+      partialize: (s) => ({ bankroll: s.bankroll, balanceAt: s.balanceAt, seated: s.seated, settings: s.settings }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>
         // Chips left on a table when the page closed go back to the bankroll.
         const bankroll = (p.bankroll ?? current.bankroll) + (p.seated ?? 0)
-        return { ...current, bankroll, seated: 0, settings: { ...defaults, ...p.settings } }
+        return { ...current, bankroll, balanceAt: p.balanceAt ?? 0, seated: 0, settings: { ...defaults, ...p.settings } }
       },
     },
   ),
@@ -186,4 +189,9 @@ useGame.subscribe((s, prev) => {
   if (s.seats === prev.seats && s.screen === prev.screen) return
   const seated = s.screen === 'table' ? (s.seats[0]?.stack ?? 0) : 0
   if (seated !== s.seated) set({ seated })
+})
+
+// Stamp every balance change so the newest one wins when devices sync.
+useGame.subscribe((s, prev) => {
+  if (s.bankroll + s.seated !== prev.bankroll + prev.seated && s.balanceAt === prev.balanceAt) set({ balanceAt: Date.now() })
 })

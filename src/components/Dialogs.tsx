@@ -5,6 +5,7 @@ import { breakdown, chipLabel, colorUp, colorUpOptions, denomsDesc, formatMoney,
 import { play, setAmbient } from '../audio/sound'
 import { Button, Dialog, Segmented, Slider, Toggle } from './ui/kit'
 import { Chip } from './chips/Chip'
+import { CloudSync } from './CloudSync'
 
 const close = () => set({ dialog: null })
 
@@ -47,6 +48,10 @@ export function SettingsDialog() {
         </div>
         <Toggle label="Finish the hand instantly after I fold" checked={st.skipWhenFolded} onChange={(v) => upd({ skipWhenFolded: v })} />
         <Toggle label="Show my win equity" checked={st.showEquity} onChange={(v) => upd({ showEquity: v })} />
+        <div className="mt-3 border-t border-[#d4af5a]/20 pt-4">
+          <h3 className="mb-2 font-serif text-[17px] font-bold text-[#f6e6b4]">Cloud sync</h3>
+          <CloudSync />
+        </div>
         <div className="mt-3 flex items-center justify-between border-t border-[#d4af5a]/20 pt-4">
           <span className="text-[14px] text-[#bfb49a]">Bankroll: {formatMoney(bankroll)}</span>
           <Button
@@ -54,7 +59,7 @@ export function SettingsDialog() {
             variant={confirmReset ? 'danger' : 'ghost'}
             onClick={() => {
               if (!confirmReset) return setConfirmReset(true)
-              set({ bankroll: START_BANKROLL })
+              set({ bankroll: START_BANKROLL, balanceAt: Date.now() })
               setConfirmReset(false)
             }}
             onBlur={() => setConfirmReset(false)}

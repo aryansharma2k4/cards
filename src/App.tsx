@@ -6,6 +6,7 @@ import { TableScreen } from './screens/TableScreen'
 import { Stats } from './screens/Stats'
 import { useGame } from './game/store'
 import { initAudio, setMasterVolume } from './audio/sound'
+import { startCloud } from './cloud/sync'
 
 export default function App() {
   const screen = useGame((s) => s.screen)
@@ -21,6 +22,7 @@ export default function App() {
     const unlock = () => initAudio()
     window.addEventListener('pointerdown', unlock, { once: true })
     window.addEventListener('keydown', unlock, { once: true })
+    void startCloud()
   }, [])
 
   return (

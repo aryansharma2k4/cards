@@ -7,6 +7,7 @@ import { Button, Segmented } from '../components/ui/kit'
 import { Card } from '../components/cards/Card'
 import { Chip } from '../components/chips/Chip'
 import { initAudio, play } from '../audio/sound'
+import { CloudBadge } from '../components/CloudSync'
 
 const HERO_CARDS = ['Ts', 'Js', 'Qs', 'Ks', 'As']
 
@@ -71,6 +72,7 @@ export function Lobby() {
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#d4af5a]/80">Bankroll</div>
                 <div className="font-serif text-[40px] font-bold tabular-nums leading-tight text-[#f6e6b4]">{formatMoney(bankroll)}</div>
+                <CloudBadge />
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => set({ screen: 'stats' })}>
