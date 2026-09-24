@@ -4,7 +4,7 @@ import { decide, makePersonality, type Difficulty, type Style } from '../ai/bot'
 import { requestEquity } from '../ai/equity'
 import { play, setAmbient } from '../audio/sound'
 import { AI_SEATS, HERO, NUM_SEATS } from '../ui/geometry'
-import { playEvent, sleep } from './director'
+import { fastForward, playEvent, sleep } from './director'
 import { get, log, patchSeat, set, useGame, type Avatar, type SeatView, type TableConfig } from './store'
 
 const NAMES = [
@@ -254,10 +254,10 @@ class Controller {
     const big = legal.toCall > pot * 0.4 || legal.toCall >= me.stack * 0.3
     const difficulty: Difficulty = get().table!.difficulty
     const fast = get().settings.speed === 'fast'
-    const ms = Math.max(350, rand(800, 2500) * (big ? 1.35 : 1) * (fast ? 0.55 : 1))
-    patchSeat(seat, { thinking: { ms, key: this.thinkKey++ } })
+    const ms = fastForward() ? 0 : Math.max(350, rand(800, 2500) * (big ? 1.35 : 1) * (fast ? 0.55 : 1))
+    if (ms) patchSeat(seat, { thinking: { ms, key: this.thinkKey++ } })
 
-    const iterations = { easy: 800, normal: 1500, hard: 3000 }[difficulty]
+    const iterations = fastForward() ? 500 : { easy: 800, normal: 1500, hard: 3000 }[difficulty]
     // Pre-flop bots judge hand strength heads-up; after the flop, against everyone still in.
     const vs = engine.street === 'preflop' ? 1 : opponents
     const [equity] = await Promise.all([

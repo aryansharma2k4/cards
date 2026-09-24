@@ -11,11 +11,9 @@ let heroCards: string[] = []
 let heroFolded = false
 let cardKey = 0
 
-const speed = () => {
-  const s = get().settings
-  if (heroFolded && s.skipWhenFolded) return 0.25
-  return s.speed === 'fast' ? 0.55 : 1
-}
+/** After the hero folds, the rest of the hand plays out almost instantly (only the result lingers). */
+export const fastForward = () => heroFolded && get().settings.skipWhenFolded
+const speed = () => (fastForward() ? 0.03 : get().settings.speed === 'fast' ? 0.55 : 1)
 export const T = (ms: number) => ms * speed()
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, T(ms)))
 const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
@@ -318,7 +316,9 @@ export async function playEvent(e: EngineEvent): Promise<void> {
         winners.length === 1
           ? `${name(winners[0])} ${winners[0] === HERO ? 'win' : 'wins'} ${formatMoney(won[winners[0]])}`
           : `Split pot · ${winners.map(name).join(' & ')}`
-      set({ banner: { title, detail: label(winners[0]) ?? '', hero: !!won[HERO] } })
+      const shown = reveal ? get().seats[winners[0]]?.cards.map((c) => c.code).filter((c): c is string => !!c) : []
+      const detail = reveal ? [label(winners[0]), shown?.length ? pretty(shown) : ''].filter(Boolean).join(' · ') : 'Everyone else folded'
+      set({ banner: { title, detail, hero: !!won[HERO] } })
       for (const w of winners) log(`${name(w)} ${w === HERO ? 'win' : 'wins'} ${formatMoney(won[w])}${label(w) ? ` with ${label(w)}` : ''}`)
       if (won[HERO]) play('win')
       heroFolded = false // don't fast-forward the between-hands pause

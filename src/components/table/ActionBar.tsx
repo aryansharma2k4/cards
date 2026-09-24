@@ -87,7 +87,7 @@ export function ActionBar() {
     >
       <div className="flex h-5 items-center justify-between text-[13px]">
         {waiting ? (
-          <span className="text-[#bfb49a]">{heroSeat?.folded ? 'You folded — watching the hand' : 'Waiting for opponents…'}</span>
+          <span className="text-[#bfb49a]">{heroSeat?.folded ? 'You folded, finishing the hand…' : 'Waiting for opponents…'}</span>
         ) : check?.hint ? (
           <span className="font-semibold text-[#ffcf8a]" role="alert">{check.hint}</span>
         ) : (

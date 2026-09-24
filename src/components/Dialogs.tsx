@@ -45,7 +45,7 @@ export function SettingsDialog() {
             ]}
           />
         </div>
-        <Toggle label="Speed through hands after I fold" checked={st.skipWhenFolded} onChange={(v) => upd({ skipWhenFolded: v })} />
+        <Toggle label="Finish the hand instantly after I fold" checked={st.skipWhenFolded} onChange={(v) => upd({ skipWhenFolded: v })} />
         <Toggle label="Show my win equity" checked={st.showEquity} onChange={(v) => upd({ showEquity: v })} />
         <div className="mt-3 flex items-center justify-between border-t border-[#d4af5a]/20 pt-4">
           <span className="text-[14px] text-[#bfb49a]">Bankroll: {formatMoney(bankroll)}</span>
