@@ -3,6 +3,7 @@ import { GlobalDefs } from './components/GlobalDefs'
 import { SettingsDialog } from './components/Dialogs'
 import { Lobby } from './screens/Lobby'
 import { TableScreen } from './screens/TableScreen'
+import { Stats } from './screens/Stats'
 import { useGame } from './game/store'
 import { initAudio, setMasterVolume } from './audio/sound'
 
@@ -25,7 +26,7 @@ export default function App() {
   return (
     <>
       <GlobalDefs />
-      {screen === 'lobby' ? <Lobby /> : <TableScreen />}
+      {screen === 'lobby' ? <Lobby /> : screen === 'stats' ? <Stats /> : <TableScreen />}
       <SettingsDialog />
     </>
   )

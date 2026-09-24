@@ -72,9 +72,14 @@ export function Lobby() {
                 <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#d4af5a]/80">Bankroll</div>
                 <div className="font-serif text-[40px] font-bold tabular-nums leading-tight text-[#f6e6b4]">{formatMoney(bankroll)}</div>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => set({ dialog: 'settings' })}>
-                Settings
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => set({ screen: 'stats' })}>
+                  Stats
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => set({ dialog: 'settings' })}>
+                  Settings
+                </Button>
+              </div>
             </div>
 
             <fieldset className="mt-6">

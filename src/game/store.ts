@@ -74,7 +74,7 @@ export interface Settings {
 }
 
 interface State {
-  screen: 'lobby' | 'table'
+  screen: 'lobby' | 'table' | 'stats'
   bankroll: number
   /** Chips on the table right now (returned to the bankroll if the page closes). */
   seated: number
@@ -180,3 +180,10 @@ export function fly(f: Omit<Flyer, 'id' | 'resolve'>): Promise<void> {
 export function removeFlyer(id: number) {
   set((s) => ({ flyers: s.flyers.filter((f) => f.id !== id) }))
 }
+
+// Chips in front of you are saved continuously; if the page closes they return to the bankroll on next load.
+useGame.subscribe((s, prev) => {
+  if (s.seats === prev.seats && s.screen === prev.screen) return
+  const seated = s.screen === 'table' ? (s.seats[0]?.stack ?? 0) : 0
+  if (seated !== s.seated) set({ seated })
+})

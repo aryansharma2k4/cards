@@ -5,6 +5,7 @@ import { requestEquity } from '../ai/equity'
 import { play, setAmbient } from '../audio/sound'
 import { AI_SEATS, HERO, NUM_SEATS } from '../ui/geometry'
 import { fastForward, playEvent, sleep } from './director'
+import { Recorder } from './history'
 import { get, log, patchSeat, set, useGame, type Avatar, type SeatView, type TableConfig } from './store'
 
 const NAMES = [
@@ -64,12 +65,19 @@ class Controller {
   private heroResolve: ((a: Action) => void) | null = null
   private bustResolve: ((rebuy: boolean) => void) | null = null
   private thinkKey = 0
+  private recorder = new Recorder({
+    hero: HERO,
+    numSeats: NUM_SEATS,
+    nameOf: (seat) => (seat === HERO ? 'You' : (get().seats[seat]?.name ?? `Seat ${seat}`)),
+    worth: () => get().bankroll + (this.engine?.seats()[HERO]?.stack ?? 0),
+  })
 
   start(cfg: Omit<TableConfig, 'sb' | 'bb' | 'unit'>) {
     const { sb, bb, unit } = blindsFor(cfg.buyIn)
     const table: TableConfig = { ...cfg, sb, bb, unit }
     const engine = new PokerEngine({ smallBlind: sb, bigBlind: bb, numSeats: NUM_SEATS, heroSeat: HERO })
     engine.on((e) => this.queue.push(e))
+    engine.on((e) => this.recorder.onEvent(e))
     this.engine = engine
     this.queue = []
 
@@ -101,6 +109,7 @@ class Controller {
       paused: false,
       colorUpHint: false,
     }))
+    this.recorder.startSession({ buyIn: cfg.buyIn, sb, bb, opponents: cfg.opponents, difficulty: cfg.difficulty })
     log(`You sit down with $${cfg.buyIn.toLocaleString()} · blinds $${sb}/$${bb}`)
     setAmbient(get().settings.ambient)
     void this.loop(++this.gen)
@@ -112,6 +121,7 @@ class Controller {
     this.heroResolve = null
     this.bustResolve = null
     const stack = this.engine?.seats()[HERO]?.stack ?? 0
+    this.recorder.endSession(stack)
     this.engine = null
     setAmbient(false)
     set((s) => ({ screen: 'lobby', bankroll: s.bankroll + stack, seated: 0, table: null, flyers: [], legal: null, dialog: null, focus: false }))
@@ -137,8 +147,11 @@ class Controller {
       while (this.alive(gen) && engine.inProgress) {
         const seat = engine.toAct
         if (seat === null) break
+        const legal = engine.getLegalActions(seat)!
+        const potBefore = engine.potTotal()
         const action = seat === HERO ? await this.heroTurn() : await this.botTurn(seat, gen)
         if (!this.alive(gen)) return
+        if (seat === HERO) this.recorder.decision(legal, potBefore, get().equity, action)
         engine.act(seat, action)
         await this.drain(gen)
       }
@@ -165,6 +178,7 @@ class Controller {
       engine.sitDown(HERO, cfg.buyIn)
       set((s) => ({ bankroll: s.bankroll - cfg.buyIn, seated: cfg.buyIn, rack: breakdown(cfg.buyIn, cfg.unit) }))
       patchSeat(HERO, { stack: cfg.buyIn })
+      this.recorder.rebuy(cfg.buyIn)
       log(`You rebuy for $${cfg.buyIn.toLocaleString()}`)
       play('stack')
     }
