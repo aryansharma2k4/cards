@@ -42,8 +42,27 @@ export interface HandRecord {
   worth: number
 }
 
+export type GameKind = 'poker' | 'blackjack' | 'roulette'
+
+/** One blackjack round or roulette spin. */
+export interface RoundRecord {
+  id: string
+  sessionId: string
+  game: 'blackjack' | 'roulette'
+  ts: number
+  /** Total staked this round. */
+  bet: number
+  net: number
+  /** Bankroll + chips on the table after the round. */
+  worth: number
+  /** Short human summary, e.g. "Hand 20 vs dealer 18" or "17 red". */
+  detail: string
+}
+
 export interface SessionRecord {
   id: string
+  /** Missing on sessions recorded before other games existed (= poker). */
+  game?: GameKind
   start: number
   end: number | null
   buyIn: number
@@ -60,6 +79,7 @@ export interface SessionRecord {
 interface HistoryState {
   sessions: SessionRecord[]
   hands: HandRecord[]
+  rounds: RoundRecord[]
   /** Hand/session ids already pushed to the cloud. */
   synced: string[]
 }
@@ -68,7 +88,10 @@ interface HistoryState {
 const MAX_HANDS = 3000
 
 export const useHistory = create<HistoryState>()(
-  persist((): HistoryState => ({ sessions: [], hands: [], synced: [] }), { name: 'cards:history:v1' }),
+  persist((): HistoryState => ({ sessions: [], hands: [], rounds: [], synced: [] }), {
+    name: 'cards:history:v1',
+    merge: (p, c) => ({ ...c, ...(p as Partial<HistoryState>), rounds: (p as Partial<HistoryState>)?.rounds ?? [] }),
+  }),
 )
 
 const POSITIONS: Record<number, string[]> = {
@@ -203,4 +226,25 @@ export class Recorder {
       }
     }
   }
+}
+
+// ---- blackjack / roulette sessions ----
+
+export function startCasinoSession(game: 'blackjack' | 'roulette', buyIn: number): string {
+  const s: SessionRecord = { id: crypto.randomUUID(), game, start: Date.now(), end: null, buyIn, sb: 0, bb: 0, opponents: 0, difficulty: 'hard', invested: buyIn, cashOut: null, hands: 0 }
+  upsertSession(s)
+  return s.id
+}
+
+export function recordRound(r: Omit<RoundRecord, 'id' | 'ts'>) {
+  const rec: RoundRecord = { ...r, id: crypto.randomUUID(), ts: Date.now() }
+  useHistory.setState((h) => ({
+    rounds: [...h.rounds, rec].slice(-MAX_HANDS),
+    sessions: h.sessions.map((s) => (s.id === r.sessionId ? { ...s, hands: s.hands + 1 } : s)),
+  }))
+}
+
+export function endCasinoSession(id: string, cashOut: number) {
+  const s = useHistory.getState().sessions.find((x) => x.id === id)
+  if (s) upsertSession({ ...s, end: Date.now(), cashOut })
 }

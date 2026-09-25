@@ -6,6 +6,8 @@ import type { Rack } from '../engine/chips'
 import type { Difficulty, Personality } from '../ai/bot'
 import type { Pt } from '../ui/geometry'
 
+export type CasinoGame = 'blackjack' | 'roulette'
+
 export const START_BANKROLL = 10_000
 export const BUY_INS = [100, 500, 1_000, 2_500, 5_000, 10_000]
 
@@ -74,7 +76,9 @@ export interface Settings {
 }
 
 interface State {
-  screen: 'lobby' | 'table' | 'stats'
+  screen: 'lobby' | 'table' | 'stats' | 'blackjack' | 'roulette'
+  /** Blackjack/roulette table you're sitting at, and the chips in front of you there. */
+  casino: { game: CasinoGame; stack: number; buyIn: number } | null
   bankroll: number
   /** When your balance (bankroll + table chips) last changed, ms. 0 = never touched on this device. Cloud sync uses it. */
   balanceAt: number
@@ -123,6 +127,7 @@ export const useGame = create<State>()(
         bankroll: START_BANKROLL,
         balanceAt: 0,
         seated: 0,
+        casino: null,
         settings: defaults,
         table: null,
         seats: [],
@@ -193,8 +198,8 @@ export function removeFlyer(id: number) {
 
 // Chips in front of you are saved continuously; if the page closes they return to the bankroll on next load.
 useGame.subscribe((s, prev) => {
-  if (s.seats === prev.seats && s.screen === prev.screen) return
-  const seated = s.screen === 'table' ? (s.seats[0]?.stack ?? 0) : 0
+  if (s.seats === prev.seats && s.screen === prev.screen && s.casino === prev.casino) return
+  const seated = s.screen === 'table' ? (s.seats[0]?.stack ?? 0) : s.casino && s.screen === s.casino.game ? s.casino.stack : 0
   if (seated !== s.seated) set({ seated })
 })
 
