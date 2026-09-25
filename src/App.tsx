@@ -4,6 +4,9 @@ import { SettingsDialog } from './components/Dialogs'
 import { Lobby } from './screens/Lobby'
 import { TableScreen } from './screens/TableScreen'
 import { Stats } from './screens/Stats'
+import { RouletteScreen } from './games/roulette/RouletteScreen'
+import { BlackjackScreen } from './games/blackjack/BlackjackScreen'
+import { busy } from './games/casino'
 import { useGame } from './game/store'
 import { initAudio, setMasterVolume } from './audio/sound'
 import { startCloud } from './cloud/sync'
@@ -37,6 +40,7 @@ export default function App() {
       if (open) return void open.dispatchEvent(new Event('cancel', { cancelable: true }))
       if (s.screen === 'table' && s.settings.panelOpen) return set({ settings: { ...s.settings, panelOpen: false } })
       if (s.screen === 'table') return set({ dialog: 'leave' })
+      if (s.screen === 'blackjack' || s.screen === 'roulette') return void (busy || set({ dialog: 'leave' }))
       if (s.screen === 'stats') return set({ screen: 'lobby' })
       void NativeApp.exitApp()
     })
@@ -46,7 +50,17 @@ export default function App() {
   return (
     <>
       <GlobalDefs />
-      {screen === 'lobby' ? <Lobby /> : screen === 'stats' ? <Stats /> : <TableScreen />}
+      {screen === 'lobby' ? (
+        <Lobby />
+      ) : screen === 'stats' ? (
+        <Stats />
+      ) : screen === 'roulette' ? (
+        <RouletteScreen />
+      ) : screen === 'blackjack' ? (
+        <BlackjackScreen />
+      ) : (
+        <TableScreen />
+      )}
       <SettingsDialog />
     </>
   )

@@ -127,7 +127,7 @@ export const Chip = memo(function Chip({ denom, size = 48 }: { denom: number; si
 })
 
 const THICK = 5.2 // stage px per chip edge
-const TILT = 0.46 // vertical squash of the top face (slight 3/4 view)
+export const TILT = 0.46 // vertical squash of the top face (slight 3/4 view)
 
 /** Deterministic 0–1px jitter so stacks look hand-placed. */
 const jitter = (d: number, i: number) => ((Math.sin(d * 12.9898 + i * 78.233) * 43758.5453) % 1) * 1.1

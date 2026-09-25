@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { set, useGame } from '../game/store'
-import { useHistory, type HandRecord, type SessionRecord } from '../game/history'
+import { useHistory, type GameKind, type HandRecord, type SessionRecord } from '../game/history'
 import { groupNet, summarize, verdict, type Tone } from '../game/analysis'
 import { formatMoney } from '../engine/chips'
 import { BarChart, LineChart, LOSS, PROFIT } from '../components/stats/charts'
@@ -164,13 +164,14 @@ export function Stats() {
   const [sessionId, setSessionId] = useState<string>('all')
   const [range, setRange] = useState<'100' | 'all'>('all')
   const [open, setOpen] = useState<HandRecord | null>(null)
+  const [tab, setTab] = useState<GameKind>('poker')
 
   const hands = useMemo(() => {
     const h = sessionId === 'all' ? allHands : allHands.filter((x) => x.sessionId === sessionId)
     return range === '100' ? h.slice(-100) : h
   }, [allHands, sessionId, range])
   const s = summarize(hands)
-  const sortedSessions = [...sessions].sort((a, b) => a.start - b.start)
+  const sortedSessions = sessions.filter((x) => (x.game ?? 'poker') === 'poker').sort((a, b) => a.start - b.start)
   const sessionNet = (x: SessionRecord) => (x.cashOut ?? 0) - x.invested
   const finished = sortedSessions.filter((x) => x.end)
   const positions = groupNet(hands, (h) => h.position)
@@ -185,7 +186,17 @@ export function Stats() {
             ← Lobby
           </Button>
           <h1 className="gold-text font-display text-[40px] font-bold leading-none">Your stats</h1>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Segmented
+            label="Game"
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: 'poker', label: "Hold'em" },
+              { value: 'blackjack', label: 'Blackjack' },
+              { value: 'roulette', label: 'Roulette' },
+            ]}
+          />
+          <div className={`ml-auto flex flex-wrap items-center gap-2 ${tab === 'poker' ? '' : 'hidden'}`}>
             <select
               aria-label="Session"
               value={sessionId}
@@ -211,7 +222,9 @@ export function Stats() {
           </div>
         </header>
 
-        {allHands.length === 0 ? (
+        {tab !== 'poker' ? (
+          <CasinoStats game={tab} />
+        ) : allHands.length === 0 ? (
           <Panel title="No hands yet">
             <p className="text-[15px] text-[#d8ccb0]">Play a few hands and your results, graphs and a breakdown of every decision will show up here.</p>
           </Panel>
@@ -348,5 +361,81 @@ export function Stats() {
       </div>
       <HandDetail hand={open} onClose={() => setOpen(null)} />
     </div>
+  )
+}
+
+const GAME_NAME: Record<GameKind, string> = { poker: "Hold'em", blackjack: 'Blackjack', roulette: 'Roulette' }
+
+/** Blackjack / roulette: results per round. */
+function CasinoStats({ game }: { game: Exclude<GameKind, 'poker'> }) {
+  const bankroll = useGame((s) => s.bankroll)
+  const all = useHistory((s) => s.rounds)
+  const rounds = useMemo(() => all.filter((r) => r.game === game), [all, game])
+  if (!rounds.length)
+    return (
+      <Panel title={`No ${GAME_NAME[game].toLowerCase()} yet`}>
+        <p className="text-[15px] text-[#d8ccb0]">Pick {GAME_NAME[game]} in the lobby and every round you play will show up here.</p>
+      </Panel>
+    )
+  const net = rounds.reduce((a, r) => a + r.net, 0)
+  const wagered = rounds.reduce((a, r) => a + r.bet, 0)
+  const wins = rounds.filter((r) => r.net > 0).length
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Tile label="Bankroll" value={formatMoney(bankroll)} sub="saved on this device" />
+        <Tile label="Net result" value={<Net n={net} />} sub={`${rounds.length} rounds`} />
+        <Tile label="Rounds won" value={pct(wins / rounds.length)} sub={`${wins} of ${rounds.length}`} />
+        <Tile label="Total wagered" value={formatMoney(wagered)} sub={`return ${pct(wagered ? (wagered + net) / wagered : 0)}`} />
+        <Tile label="Biggest win" value={<Net n={Math.max(0, ...rounds.map((r) => r.net))} />} />
+        <Tile label="Biggest loss" value={<Net n={Math.min(0, ...rounds.map((r) => r.net))} />} />
+      </div>
+      <Panel title="Net worth" note="bankroll + chips on the table, after each round">
+        <LineChart
+          label="Net worth after each round"
+          points={rounds.map((r) => ({
+            y: r.worth,
+            tip: (
+              <>
+                <div className="font-semibold">{formatMoney(r.worth)}</div>
+                <div className="text-[#bfb49a]">{date(r.ts)}</div>
+                <div>
+                  {r.detail} · <Net n={r.net} />
+                </div>
+              </>
+            ),
+          }))}
+        />
+      </Panel>
+      <Panel title="Rounds">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-[13.5px]">
+            <thead className="text-[11px] uppercase tracking-[0.14em] text-[#9d937c]">
+              <tr>
+                <th className="py-2 font-semibold">When</th>
+                <th className="font-semibold">Bet</th>
+                <th className="font-semibold">{game === 'roulette' ? 'Number' : 'Hands'}</th>
+                <th className="text-right font-semibold">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...rounds]
+                .reverse()
+                .slice(0, 200)
+                .map((r) => (
+                  <tr key={r.id} className="border-t border-white/5 text-[#d8ccb0]">
+                    <td className="py-1.5 whitespace-nowrap">{date(r.ts)}</td>
+                    <td>{formatMoney(r.bet)}</td>
+                    <td className="capitalize">{r.detail}</td>
+                    <td className="text-right">
+                      <Net n={r.net} />
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </>
   )
 }

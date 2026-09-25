@@ -9,6 +9,10 @@ export const LIMITS: Record<CasinoGame, { min: number; max: number }> = {
 
 let sessionId = ''
 
+/** A round is in play (ball spinning, cards out): leaving waits until it settles. */
+export let busy = false
+export const setBusy = (b: boolean) => void (busy = b)
+
 /** Buy in: move money from the bankroll to chips at the table. */
 export function enterCasino(game: CasinoGame, buyIn: number) {
   if (buyIn <= 0 || buyIn > get().bankroll) return

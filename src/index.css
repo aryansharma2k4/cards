@@ -154,3 +154,6 @@ body {
   0%, 100% { translate: 0 0; rotate: 0deg; }
   50% { translate: 0 -12px; rotate: 8deg; }
 }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

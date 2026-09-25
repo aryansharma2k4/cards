@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createAuthClient } from '@neondatabase/auth'
 import { get as game, set as setGame, useGame } from '../game/store'
-import { useHistory, type HandRecord, type SessionRecord } from '../game/history'
+import { useHistory, type HandRecord, type RoundRecord, type SessionRecord } from '../game/history'
 
 // Public endpoints (not secrets). Override with VITE_NEON_AUTH_URL / VITE_SYNC_URL.
 const AUTH_URL =
@@ -29,7 +29,8 @@ interface RemoteState {
   balance: number | null
   balanceAt: number | null
   sessions: SessionRecord[]
-  hands: HandRecord[]
+  /** Poker hands and casino rounds (rounds carry a `game` field). */
+  hands: (HandRecord | RoundRecord)[]
 }
 
 const errMsg = (e: unknown) => (e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : String(e))
@@ -50,18 +51,23 @@ async function api(path: string, body?: unknown): Promise<RemoteState> {
   return r.json()
 }
 
+const isRound = (x: HandRecord | RoundRecord): x is RoundRecord => 'game' in x
+
 /** Merge the server's view into local state. Balance: newest write wins, but never while you're seated. */
 function merge(remote: RemoteState) {
   const g = game()
-  if (remote.balance !== null && remote.balanceAt !== null && remote.balanceAt > g.balanceAt && g.screen !== 'table')
+  const seated = g.screen !== 'lobby' && g.screen !== 'stats'
+  if (remote.balance !== null && remote.balanceAt !== null && remote.balanceAt > g.balanceAt && !seated)
     setGame({ bankroll: remote.balance, balanceAt: remote.balanceAt })
   useHistory.setState((h) => {
     const haveH = new Set(h.hands.map((x) => x.id))
     const haveS = new Set(h.sessions.map((x) => x.id))
-    const hands = [...h.hands, ...remote.hands.filter((x) => !haveH.has(x.id))].sort((a, b) => a.ts - b.ts).slice(-3000)
+    const haveR = new Set(h.rounds.map((x) => x.id))
+    const hands = [...h.hands, ...remote.hands.filter((x): x is HandRecord => !isRound(x) && !haveH.has(x.id))].sort((a, b) => a.ts - b.ts).slice(-3000)
+    const rounds = [...h.rounds, ...remote.hands.filter((x): x is RoundRecord => isRound(x) && !haveR.has(x.id))].sort((a, b) => a.ts - b.ts).slice(-3000)
     const sessions = [...h.sessions, ...remote.sessions.filter((x) => !haveS.has(x.id))]
     const synced = new Set([...h.synced, ...remote.hands.map((x) => x.id), ...remote.sessions.map((x) => x.id)])
-    return { hands, sessions, synced: [...synced] }
+    return { hands, rounds, sessions, synced: [...synced] }
   })
 }
 
@@ -73,13 +79,13 @@ export function syncNow(): Promise<void> {
   return (running ??= (async () => {
     setCloud({ status: 'syncing', error: null })
     try {
-      const { hands, sessions, synced } = useHistory.getState()
+      const { hands, rounds, sessions, synced } = useHistory.getState()
       const done = new Set(synced)
-      const newHands = hands.filter((h) => !done.has(h.id))
+      const newHands = [...hands, ...rounds].filter((h) => !done.has(h.id))
       // sessions change as hands are played, so always resend open/recent ones
       const recent = sessions.filter((s) => !done.has(s.id) || !s.end || s.end > (useCloud.getState().lastSync ?? 0))
       const g = game()
-      const since = Math.max(0, ...hands.map((h) => h.ts))
+      const since = Math.max(0, ...hands.map((h) => h.ts), ...rounds.map((r) => r.ts))
       let remote: RemoteState | null = null
       for (let i = 0; i === 0 || i < newHands.length; i += 1000) {
         remote = await api(`/sync?since=${since}`, {
@@ -139,12 +145,15 @@ export async function startCloud() {
     clearTimeout(t)
     t = setTimeout(() => void syncNow(), 2000)
   }
-  useHistory.subscribe((s, p) => s.hands !== p.hands && soon()) // after each hand
-  // any change to your money (leaving a table, rebuy, reset) and joining/leaving a table
-  useGame.subscribe((s, p) => (s.balanceAt !== p.balanceAt || s.screen !== p.screen) && soon())
+  useHistory.subscribe((s, p) => (s.hands !== p.hands || s.rounds !== p.rounds) && soon()) // after each hand or round
+  // leaving a table syncs right away; any other change to your money (rebuy, reset) shortly after
+  useGame.subscribe((s, p) => {
+    if (s.screen !== p.screen && s.screen === 'lobby') void syncNow()
+    else if (s.balanceAt !== p.balanceAt || s.screen !== p.screen) soon()
+  })
   window.addEventListener('focus', soon)
-  // coming back to the app (phone unlocked, tab switched back) and a quiet pull every minute
-  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && soon())
+  // coming back to the app pulls, leaving it (home button, tab switch) pushes, plus a quiet pull every minute
+  document.addEventListener('visibilitychange', () => (document.visibilityState === 'visible' ? soon() : void syncNow()))
   setInterval(() => document.visibilityState === 'visible' && void syncNow(), 60_000)
 
   const { data } = await auth.getSession().catch(() => ({ data: null }))

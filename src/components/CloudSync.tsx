@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signIn, signOut, syncNow, useCloud } from '../cloud/sync'
+import { signIn, signOut, useCloud } from '../cloud/sync'
 import { Button } from './ui/kit'
 
 const ago = (t: number | null) => {
@@ -26,12 +26,9 @@ export function CloudSync() {
           Signed in as <b>{email}</b>
         </p>
         <p className="text-[13px] text-[#bfb49a]" aria-live="polite">
-          {status === 'syncing' ? 'Syncing…' : status === 'error' ? `Couldn't sync: ${error}` : lastSync ? `Balance and hands synced ${ago(lastSync)}` : 'Not synced yet'}
+          {status === 'syncing' ? 'Syncing…' : status === 'error' ? `Couldn't sync: ${error}` : lastSync ? `Syncs automatically · last synced ${ago(lastSync)}` : 'Syncs automatically'}
         </p>
         <div className="flex gap-2">
-          <Button size="sm" variant="felt" onClick={() => void syncNow()} disabled={status === 'syncing'}>
-            Sync now
-          </Button>
           <Button size="sm" variant="ghost" onClick={() => void signOut()}>
             Sign out
           </Button>
