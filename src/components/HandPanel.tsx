@@ -21,7 +21,7 @@ function Mini({ code, lit }: { code: string; lit: boolean }) {
   const red = code[1] === 'h' || code[1] === 'd'
   return (
     <span
-      className={`inline-flex h-[30px] w-[22px] flex-col items-center justify-center rounded-[3px] bg-[linear-gradient(180deg,#fffdf8,#ece5d3)] font-serif text-[13px] font-bold leading-[12px] shadow-[0_1px_2px_rgba(0,0,0,.6)] transition ${
+      className={`inline-flex h-[30px] w-[22px] flex-col items-center justify-center rounded-[3px] bg-[linear-gradient(180deg,#fffdf8,#ece5d3)] font-display text-[13px] font-bold leading-[12px] shadow-[0_1px_2px_rgba(0,0,0,.6)] transition ${
         red ? 'text-[#c8102e]' : 'text-[#15110e]'
       } ${lit ? '' : 'opacity-80'}`}
     >
@@ -55,7 +55,7 @@ export function HandPanel() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 transition-transform duration-300 ${open ? '' : 'rotate-180'}`}>
           <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        {open && <span className="font-serif text-[17px] font-bold tracking-wide">Hand Rankings</span>}
+        {open && <span className="font-display text-[17px] font-bold tracking-wide">Hand Rankings</span>}
       </button>
 
       {open && (
@@ -88,7 +88,7 @@ export function HandPanel() {
           </ol>
           <div className="border-t border-[#d4af5a]/20 px-3 py-3" aria-live="polite">
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d4af5a]/70">Your hand</div>
-            <div className="mt-0.5 min-h-[22px] font-serif text-[16px] font-bold text-[#f6e6b4]">{hand?.label ?? '—'}</div>
+            <div className="mt-0.5 min-h-[22px] font-display text-[16px] font-bold text-[#f6e6b4]">{hand?.label ?? '—'}</div>
             {showEquity && (
               <div className="mt-2">
                 <div className="flex justify-between text-[11px] text-[#bfb49a]">

@@ -216,7 +216,7 @@ export const TableArt = memo(function TableArt() {
         </g>
       ))}
       <g transform={`translate(${CENTER.x} ${CENTER.y + 150})`} opacity="0.5">
-        <text textAnchor="middle" fontFamily="var(--font-serif)" fontSize="22" letterSpacing="14" fill="url(#stamp)">
+        <text textAnchor="middle" fontFamily="var(--font-display)" fontSize="22" letterSpacing="14" fill="url(#stamp)">
           ♠ ♥ ♦ ♣
         </text>
       </g>

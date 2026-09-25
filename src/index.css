@@ -1,9 +1,9 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/playfair-display';
 @import '@fontsource-variable/manrope';
 
 @theme {
-  --font-serif: 'Playfair Display Variable', Georgia, serif;
+  /* One clean face everywhere: card indices, chips, amounts, headings (like a casino deck's index). */
+  --font-display: 'Manrope Variable', system-ui, sans-serif;
   --font-sans: 'Manrope Variable', system-ui, sans-serif;
   --color-felt: #145236;
   --color-felt-deep: #0b3421;

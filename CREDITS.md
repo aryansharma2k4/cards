@@ -35,7 +35,6 @@ Then list it here with its author, URL and license. If the file is missing, the 
 
 ## Fonts
 
-- **Playfair Display** by Claus Eggers Sørensen, SIL Open Font License 1.1 (via `@fontsource-variable/playfair-display`)
 - **Manrope** by Mikhail Sharanda, SIL Open Font License 1.1 (via `@fontsource-variable/manrope`)
 
 ## Code libraries

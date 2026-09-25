@@ -3,12 +3,11 @@ import { useState } from 'react'
 import { BUY_INS, set, useGame } from '../game/store'
 import { game, blindsFor } from '../game/controller'
 import { formatMoney } from '../engine/chips'
-import type { Difficulty } from '../ai/bot'
 import { Button, Segmented } from '../components/ui/kit'
 import { Card } from '../components/cards/Card'
 import { Chip } from '../components/chips/Chip'
 import { initAudio, play } from '../audio/sound'
-import { CloudBadge } from '../components/CloudSync'
+import { CloudBadge, SyncPrompt } from '../components/CloudSync'
 
 const HERO_CARDS = ['Ts', 'Js', 'Qs', 'Ks', 'As']
 
@@ -43,7 +42,6 @@ export function Lobby() {
   const bankroll = useGame((s) => s.bankroll)
   const [buyIn, setBuyIn] = useState(() => [...BUY_INS].reverse().find((b) => b <= bankroll / 4) ?? BUY_INS[0])
   const [opponents, setOpponents] = useState(5)
-  const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const affordable = buyIn <= bankroll
   const { sb, bb } = blindsFor(buyIn)
   const broke = bankroll < BUY_INS[0]
@@ -54,7 +52,7 @@ export function Lobby() {
       <div className={MOBILE ? 'relative flex min-h-full items-center gap-6 px-6 py-4' : 'relative mx-auto flex min-h-full max-w-6xl flex-col items-center justify-center gap-10 px-4 py-10 lg:flex-row lg:gap-16'} style={MOBILE ? { paddingLeft: 'max(1.5rem, env(safe-area-inset-left))', paddingRight: 'max(1.5rem, env(safe-area-inset-right))' } : undefined}>
         <section className={MOBILE ? 'w-[38%] shrink-0 text-left' : 'flex-1 text-center lg:text-left'}>
           <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.35em] text-[#d4af5a]/80">No-Limit Texas Hold'em</p>
-          <h1 className={`gold-text font-serif font-bold leading-[0.9] ${MOBILE ? 'text-[72px]' : 'text-[88px] sm:text-[120px]'}`}>cards</h1>
+          <h1 className={`gold-text font-display font-bold leading-[0.9] ${MOBILE ? 'text-[72px]' : 'text-[88px] sm:text-[120px]'}`}>cards</h1>
           <p className={MOBILE ? 'mt-2 text-[13px] leading-snug text-[#d8ccb0]' : 'mx-auto mt-4 max-w-md text-[17px] leading-relaxed text-[#d8ccb0] lg:mx-0'}>
             A private high-stakes table, a dealer who never misses, and five opponents who each play their own game.
           </p>
@@ -74,8 +72,9 @@ export function Lobby() {
             <div className="flex items-end justify-between">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#d4af5a]/80">Bankroll</div>
-                <div className={`font-serif ${MOBILE ? 'text-[28px]' : 'text-[40px]'} font-bold tabular-nums leading-tight text-[#f6e6b4]`}>{formatMoney(bankroll)}</div>
+                <div className={`font-display ${MOBILE ? 'text-[28px]' : 'text-[40px]'} font-bold tabular-nums leading-tight text-[#f6e6b4]`}>{formatMoney(bankroll)}</div>
                 <CloudBadge />
+                <SyncPrompt onOpen={() => set({ dialog: 'settings' })} />
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => set({ screen: 'stats' })}>
@@ -106,29 +105,16 @@ export function Lobby() {
               <Segmented label="Opponents" value={opponents} onChange={setOpponents} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: n }))} />
             </fieldset>
 
-            <fieldset className={MOBILE ? 'mt-2' : 'mt-5'}>
-              <legend className={`${MOBILE ? 'mb-1 text-[12px]' : 'mb-2 text-[13px]'} font-semibold text-[#e9dcb8]`}>Opponent skill</legend>
-              <Segmented
-                label="Opponent skill"
-                value={difficulty}
-                onChange={setDifficulty}
-                options={[
-                  { value: 'easy', label: 'Relaxed' },
-                  { value: 'normal', label: 'Sharp' },
-                  { value: 'hard', label: 'Ruthless' },
-                ]}
-              />
-            </fieldset>
 
             <Button
               variant="gold"
               size={MOBILE ? 'md' : 'lg'}
-              className={`${MOBILE ? 'mt-3' : 'mt-7'} w-full font-serif text-xl`}
+              className={`${MOBILE ? 'mt-3' : 'mt-7'} w-full font-display text-xl`}
               disabled={!affordable}
               onClick={() => {
                 initAudio()
                 play('stack')
-                game.start({ buyIn, opponents, difficulty })
+                game.start({ buyIn, opponents, difficulty: 'hard' }) // casino-strength opponents, always
               }}
             >
               Take a seat · {formatMoney(buyIn)}

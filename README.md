@@ -12,7 +12,7 @@ npm run build    # typecheck + production build
 ## Playing
 
 - You start with a **$10,000 bankroll** (saved in `localStorage`; you can reset it in Settings).
-- Pick a buy-in ($100 to $10,000), 1–5 opponents and their skill level. Every buy-in is 100 big blinds on a standard blind structure ($1/$1, $2/$5, $5/$10, $10/$25, $25/$50, $50/$100).
+- Pick a buy-in ($100 to $10,000) and 1–5 opponents. Opponents always play at full (casino) strength. Every buy-in is 100 big blinds on a standard blind structure ($1/$1, $2/$5, $5/$10, $10/$25, $25/$50, $50/$100).
 - **Betting with chips:** click stacks in your rack to build a bet and click the pile to take the last chip back. You can also use Min / ½ Pot / ¾ Pot / Pot / All-in or the slider. The confirm button only appears when the amount is legal; otherwise a hint explains why.
 - **Keys:** `F` fold · `C` check/call · `R` focus the raise slider · `Enter` confirm · `Esc` clear the pile.
 - **Color up** (bottom right) swaps small chips for bigger ones. It lights up when your rack gets crowded.
@@ -35,7 +35,7 @@ Release builds are signed with the key at `~/.android/cards-release.jks`, with i
 
 - **Saved on this device:** your bankroll (including chips on the table, so a refresh or a crash never loses them), settings, and every hand you play.
 - **Stats** (Lobby → Stats): net-worth graph, profit by session and by position, win rate in big blinds per 100 hands, VPIP/PFR, showdown numbers, and a list of hands. Click a hand to see it street by street, with each of your decisions judged against the pot odds.
-- **Cloud sync** (Settings → Cloud sync): create an account with email and password. Your balance, sessions and hands sync to Postgres on [Neon](https://neon.com) in Singapore. On a new device, sign in and it pulls everything down. For the balance, the most recent change wins.
+- **Cloud sync** (Settings → Cloud sync, or the prompt in the lobby): sign in once per device with email and password; after that your money syncs automatically whenever it changes, when the app comes back to the foreground, and every minute. Your balance, sessions and hands sync to Postgres on [Neon](https://neon.com) in Singapore. On a new device, sign in and it pulls everything down. For the balance, the most recent change wins.
 
 ### Sync backend (for the phone app too)
 

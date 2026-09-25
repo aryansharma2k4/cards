@@ -49,7 +49,7 @@ function Avatar({ seat, v }: { seat: number; v: SeatView }) {
           x={r}
           y={r + 9}
           textAnchor="middle"
-          fontFamily="var(--font-serif)"
+          fontFamily="var(--font-display)"
           fontWeight="700"
           fontSize="26"
           fill="#f6e6b4"
@@ -103,7 +103,7 @@ const Seat = memo(function Seat({ seat, v, isHero }: { seat: number; v: SeatView
           } ${v.winner ? 'border-[#f3dc9a] bg-[linear-gradient(180deg,#3a2a10,#1a1206)]' : 'border-[#d4af5a]/45 bg-[linear-gradient(180deg,#1b1511,#0c0907)]'} ${dim ? 'opacity-60' : ''}`}
         >
           <div className={`truncate ${MOBILE ? 'text-[22px]' : 'text-[15px]'} font-semibold tracking-wide text-[#e9dcb8]`}>{v.name}</div>
-          <div className={`font-serif ${MOBILE ? 'text-[32px]' : 'text-[22px]'} font-bold tabular-nums leading-tight text-[#f6e6b4]`}>
+          <div className={`font-display ${MOBILE ? 'text-[32px]' : 'text-[22px]'} font-bold tabular-nums leading-tight text-[#f6e6b4]`}>
             {v.allIn && v.stack === 0 ? 'ALL-IN' : formatMoney(v.stack)}
           </div>
         </div>
@@ -189,7 +189,7 @@ export function DealerButton() {
         <circle cx="20" cy="20" r="18" fill="#f8f4ea" />
         <circle cx="20" cy="20" r="18" fill="url(#chip-gloss)" />
         <circle cx="20" cy="20" r="14.5" fill="none" stroke="#c9a24a" strokeWidth="1.4" />
-        <text x="20" y="26.5" textAnchor="middle" fontFamily="var(--font-serif)" fontWeight="800" fontSize="18" fill="#15110e">
+        <text x="20" y="26.5" textAnchor="middle" fontFamily="var(--font-display)" fontWeight="800" fontSize="18" fill="#15110e">
           D
         </text>
       </svg>
@@ -257,7 +257,7 @@ export function Banner() {
       style={{ animation: 'banner-in .45s cubic-bezier(.2,.9,.3,1.2) forwards' }}
       role="status"
     >
-      <div className={`gold-text font-serif ${MOBILE ? 'text-[40px]' : 'text-[28px]'} font-bold leading-tight`}>{banner.title}</div>
+      <div className={`gold-text font-display ${MOBILE ? 'text-[40px]' : 'text-[28px]'} font-bold leading-tight`}>{banner.title}</div>
       {banner.detail && <div className={`mt-0.5 ${MOBILE ? 'text-[22px]' : 'text-[15px]'} font-semibold text-[#efe6cf]`}>{banner.detail}</div>}
     </div>
   )

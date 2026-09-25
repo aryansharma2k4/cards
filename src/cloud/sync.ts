@@ -137,11 +137,15 @@ export async function startCloud() {
   let t: ReturnType<typeof setTimeout> | undefined
   const soon = () => {
     clearTimeout(t)
-    t = setTimeout(() => void syncNow(), 4000)
+    t = setTimeout(() => void syncNow(), 2000)
   }
   useHistory.subscribe((s, p) => s.hands !== p.hands && soon()) // after each hand
-  useGame.subscribe((s, p) => s.screen !== p.screen && soon()) // on leaving/joining a table
+  // any change to your money (leaving a table, rebuy, reset) and joining/leaving a table
+  useGame.subscribe((s, p) => (s.balanceAt !== p.balanceAt || s.screen !== p.screen) && soon())
   window.addEventListener('focus', soon)
+  // coming back to the app (phone unlocked, tab switched back) and a quiet pull every minute
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && soon())
+  setInterval(() => document.visibilityState === 'visible' && void syncNow(), 60_000)
 
   const { data } = await auth.getSession().catch(() => ({ data: null }))
   if (!data?.user) return setCloud({ status: 'signed-out' })

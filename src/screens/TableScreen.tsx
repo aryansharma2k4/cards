@@ -139,7 +139,7 @@ function SidePanel() {
       style={{ paddingRight: 'max(0.5rem, env(safe-area-inset-right))' }}
     >
       <div className="flex items-baseline justify-between text-[12px]">
-        <span className="truncate font-serif text-[14px] font-bold text-[#f6e6b4]">{hand?.label ?? '—'}</span>
+        <span className="truncate font-display text-[14px] font-bold text-[#f6e6b4]">{hand?.label ?? '—'}</span>
         {hand && equity !== null && <span className="text-[#bfb49a]">{Math.round(equity * 100)}%</span>}
       </div>
       <ActionBar />

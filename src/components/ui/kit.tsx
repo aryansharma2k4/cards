@@ -74,7 +74,7 @@ export function Dialog({
         {/* frame stays put; only the content scrolls (tall dialogs on phones) */}
         <div className="pointer-events-none absolute inset-1.5 z-10 rounded-xl border border-[#d4af5a]/20" />
         <div className="relative flex items-center justify-between px-6 pt-6 pb-4">
-          <h2 className="gold-text font-serif text-2xl font-bold">{title}</h2>
+          <h2 className="gold-text font-display text-2xl font-bold">{title}</h2>
           {dismissable && (
             <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-[#e9dcb8] hover:bg-white/10">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

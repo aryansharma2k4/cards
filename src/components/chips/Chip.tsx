@@ -101,7 +101,7 @@ export function ChipDefs() {
                 x="50"
                 y={label.length > 3 ? 60 : 61.5}
                 textAnchor="middle"
-                fontFamily="var(--font-serif)"
+                fontFamily="var(--font-display)"
                 fontWeight="800"
                 fontSize={label.length > 3 ? 13 : label.length > 2 ? 15 : 18}
                 fill="#14100b"

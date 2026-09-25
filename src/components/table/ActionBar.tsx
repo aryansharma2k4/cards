@@ -138,7 +138,7 @@ export function ActionBar() {
             play('chip', { minGap: 70, volume: 0.6 })
           }}
         />
-        <span className={`shrink-0 text-right font-serif font-bold tabular-nums text-[#f6e6b4] ${MOBILE ? 'w-16 text-[14px]' : 'w-24 text-[19px]'}`}>
+        <span className={`shrink-0 text-right font-display font-bold tabular-nums text-[#f6e6b4] ${MOBILE ? 'w-16 text-[14px]' : 'w-24 text-[19px]'}`}>
           {canSize ? formatMoney(sliderVal) : '—'}
         </span>
       </div>

@@ -96,3 +96,20 @@ export function CloudBadge() {
     </span>
   )
 }
+
+/** Lobby nudge when not signed in: money only follows you across devices once you sign in. */
+export function SyncPrompt({ onOpen }: { onOpen: () => void }) {
+  const { status, email } = useCloud()
+  if (status !== 'signed-out' && email) return null
+  return (
+    <button
+      onClick={onOpen}
+      className="mt-1 flex items-center gap-1.5 text-left text-[12px] text-[#d4af5a] underline-offset-2 hover:underline"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+        <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
+      </svg>
+      Sign in to sync your money across devices
+    </button>
+  )
+}

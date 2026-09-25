@@ -55,7 +55,7 @@ export function Court({ rank, s }: { rank: string; s: string }) {
   const half = (
     <g>
       <path d={crest} fill="url(#gold-foil)" stroke="#6d5320" strokeWidth="1.2" transform="translate(125 94) scale(0.8)" />
-      <text x="125" y="162" textAnchor="middle" fontFamily="var(--font-serif)" fontWeight="700" fontSize="54" fill={col}>
+      <text x="125" y="162" textAnchor="middle" fontFamily="var(--font-display)" fontWeight="700" fontSize="54" fill={col}>
         {rank}
       </text>
       <Suit s={s} x={90} y={126} size={20} />

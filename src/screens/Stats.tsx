@@ -27,7 +27,7 @@ function Mini({ code }: { code: string }) {
   const red = code[1] === 'h' || code[1] === 'd'
   return (
     <span
-      className={`inline-flex h-[26px] w-[21px] items-center justify-center rounded-[3px] bg-[#f8f4ea] font-serif text-[12px] font-bold leading-none ${red ? 'text-[#c8102e]' : 'text-[#15110e]'}`}
+      className={`inline-flex h-[26px] w-[21px] items-center justify-center rounded-[3px] bg-[#f8f4ea] font-display text-[12px] font-bold leading-none ${red ? 'text-[#c8102e]' : 'text-[#15110e]'}`}
     >
       {code[0] === 'T' ? '10' : code[0]}
       {SUIT[code[1]]}
@@ -46,7 +46,7 @@ function Tile({ label, value, sub }: { label: string; value: React.ReactNode; su
   return (
     <div className="rounded-2xl border border-[#d4af5a]/20 bg-black/25 px-4 py-3">
       <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#d4af5a]/75">{label}</div>
-      <div className="mt-1 font-serif text-[26px] font-bold leading-tight text-[#f6e6b4]">{value}</div>
+      <div className="mt-1 font-display text-[26px] font-bold leading-tight text-[#f6e6b4]">{value}</div>
       {sub && <div className="text-[12px] text-[#9d937c]">{sub}</div>}
     </div>
   )
@@ -56,7 +56,7 @@ function Panel({ title, children, note }: { title: string; children: React.React
   return (
     <section className="rounded-2xl border border-[#d4af5a]/20 bg-[#15100b] p-4">
       <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="font-serif text-[19px] font-bold text-[#f6e6b4]">{title}</h2>
+        <h2 className="font-display text-[19px] font-bold text-[#f6e6b4]">{title}</h2>
         {note && <span className="text-[12px] text-[#9d937c]">{note}</span>}
       </div>
       {children}
@@ -90,7 +90,7 @@ function HandDetail({ hand, onClose }: { hand: HandRecord | null; onClose: () =>
               ))}
             </div>
             <div className="ml-auto text-right">
-              <Net n={hand.net} className="font-serif text-[26px]" />
+              <Net n={hand.net} className="font-display text-[26px]" />
               <div className="text-[12px] text-[#bfb49a]">
                 {hand.position} · {hand.players} players · ${hand.sb}/${hand.bb} · {date(hand.ts)}
               </div>
@@ -184,7 +184,7 @@ export function Stats() {
           <Button size="sm" variant="ghost" onClick={() => set({ screen: 'lobby' })}>
             ← Lobby
           </Button>
-          <h1 className="gold-text font-serif text-[40px] font-bold leading-none">Your stats</h1>
+          <h1 className="gold-text font-display text-[40px] font-bold leading-none">Your stats</h1>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <select
               aria-label="Session"

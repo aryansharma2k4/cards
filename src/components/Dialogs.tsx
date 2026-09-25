@@ -49,7 +49,7 @@ export function SettingsDialog() {
         <Toggle label="Finish the hand instantly after I fold" checked={st.skipWhenFolded} onChange={(v) => upd({ skipWhenFolded: v })} />
         <Toggle label="Show my win equity" checked={st.showEquity} onChange={(v) => upd({ showEquity: v })} />
         <div className="mt-3 border-t border-[#d4af5a]/20 pt-4">
-          <h3 className="mb-2 font-serif text-[17px] font-bold text-[#f6e6b4]">Cloud sync</h3>
+          <h3 className="mb-2 font-display text-[17px] font-bold text-[#f6e6b4]">Cloud sync</h3>
           <CloudSync />
         </div>
         <div className="mt-3 flex items-center justify-between border-t border-[#d4af5a]/20 pt-4">
@@ -174,7 +174,7 @@ export function LogDrawer() {
       }`}
     >
       <div className="flex h-14 items-center justify-between border-b border-[#d4af5a]/20 px-4">
-        <h2 className="gold-text font-serif text-xl font-bold">Hand history</h2>
+        <h2 className="gold-text font-display text-xl font-bold">Hand history</h2>
         <button onClick={close} aria-label="Close log" className="rounded-lg p-1.5 text-[#e9dcb8] hover:bg-white/10">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <path d="M6 6l12 12M18 6L6 18" />
