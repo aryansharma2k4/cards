@@ -11,6 +11,8 @@ const SUIT: Record<string, string> = { s: '♠', h: '♥', d: '♦', c: '♣' }
 const date = (ts: number) => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 const signed = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '') + formatMoney(Math.abs(n))
 const pct = (x: number) => `${Math.round(x * 100)}%`
+const verb = (a: string, you: boolean) =>
+  a.endsWith('blind') ? `${you ? 'post' : 'posts'} the ${a}` : you ? a : a === 'check' ? 'checks' : `${a}s`
 
 function Net({ n, className = '' }: { n: number; className?: string }) {
   // colour follows the sign, and the sign is always in the text too
@@ -126,8 +128,8 @@ function HandDetail({ hand, onClose }: { hand: HandRecord | null; onClose: () =>
                 <ol className="space-y-0.5 text-[13.5px] text-[#d8ccb0]">
                   {acts.map((a, i) => (
                     <li key={i} className={a.name === 'You' ? 'font-semibold text-[#f6e6b4]' : ''}>
-                      {a.name} {a.action}
-                      {a.action === 'raise' || a.action === 'bet' ? ` to ${formatMoney(a.bet)}` : a.amount ? ` ${formatMoney(a.amount)}` : ''}
+                      {a.name} {verb(a.action, a.name === 'You')}
+                      {a.action === 'raise' || a.action === 'bet' ? ` ${a.action === 'raise' ? 'to ' : ''}${formatMoney(a.bet)}` : a.amount ? ` ${formatMoney(a.amount)}` : ''}
                     </li>
                   ))}
                 </ol>

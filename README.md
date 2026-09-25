@@ -18,6 +18,19 @@ npm run build    # typecheck + production build
 - **Color up** (bottom right) swaps small chips for bigger ones. It lights up when your rack gets crowded.
 - Leaving the table returns your stack to the bankroll. So does closing the page.
 
+## Android app
+
+The Android app is the same React app in a [Capacitor](https://capacitorjs.com) shell (`android/`), so the engine, bots, animations, sounds, stats and sync are all identical. On phones the layout switches automatically: the table fills the screen with bigger cards, and actions plus a tappable chip rack sit in a side panel. The app is locked to landscape, runs full screen, and keeps the screen awake while you play. The Android back button closes whatever is open, asks before you leave a table, and exits from the lobby.
+
+Build it (needs JDK 21 and Android SDK 36):
+
+```sh
+npm run build && npx cap sync android
+cd android && ./gradlew assembleRelease   # → app/build/outputs/apk/release/app-release.apk
+```
+
+Release builds are signed with the key at `~/.android/cards-release.jks`, with its passwords in `~/.gradle/gradle.properties` (`CARDS_STORE_FILE`, `CARDS_STORE_PASSWORD`, `CARDS_KEY_ALIAS`, `CARDS_KEY_PASSWORD`). **Back up both files.** Android only installs an update if it's signed with the same key.
+
 ## Stats, saving and sync
 
 - **Saved on this device:** your bankroll (including chips on the table, so a refresh or a crash never loses them), settings, and every hand you play.

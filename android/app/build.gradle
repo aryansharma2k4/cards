@@ -16,8 +16,20 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release key lives outside the repo: ~/.android/cards-release.jks, secrets in ~/.gradle/gradle.properties.
+    signingConfigs {
+        release {
+            if (project.hasProperty('CARDS_STORE_FILE')) {
+                storeFile file(CARDS_STORE_FILE)
+                storePassword CARDS_STORE_PASSWORD
+                keyAlias CARDS_KEY_ALIAS
+                keyPassword CARDS_KEY_PASSWORD
+            }
+        }
+    }
     buildTypes {
         release {
+            if (project.hasProperty('CARDS_STORE_FILE')) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
