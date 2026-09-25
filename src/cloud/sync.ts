@@ -114,7 +114,7 @@ export async function signIn(email: string, password: string, create: boolean) {
     setCloud({ status: 'signed-out', error: res.error.message ?? 'Sign-in failed' })
     return false
   }
-  setCloud({ email, status: 'idle' })
+  setCloud({ email, status: 'syncing' }) // stays "Syncing…" until the first round trip is done
   try {
     await pullAll()
   } catch (e) {

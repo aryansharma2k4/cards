@@ -3,7 +3,7 @@ import { signIn, signOut, syncNow, useCloud } from '../cloud/sync'
 import { Button } from './ui/kit'
 
 const ago = (t: number | null) => {
-  if (!t) return 'never'
+  if (!t) return null
   const s = Math.round((Date.now() - t) / 1000)
   return s < 60 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(t).toLocaleString()
 }
@@ -26,7 +26,7 @@ export function CloudSync() {
           Signed in as <b>{email}</b>
         </p>
         <p className="text-[13px] text-[#bfb49a]" aria-live="polite">
-          {status === 'syncing' ? 'Syncing…' : status === 'error' ? `Couldn't sync: ${error}` : `Balance and hands synced ${ago(lastSync)}`}
+          {status === 'syncing' ? 'Syncing…' : status === 'error' ? `Couldn't sync: ${error}` : lastSync ? `Balance and hands synced ${ago(lastSync)}` : 'Not synced yet'}
         </p>
         <div className="flex gap-2">
           <Button size="sm" variant="felt" onClick={() => void syncNow()} disabled={status === 'syncing'}>
@@ -92,7 +92,7 @@ export function CloudBadge() {
   if (status === 'signed-out' || !email) return null
   return (
     <span className="text-[12px] text-[#9d937c]" title={email}>
-      {status === 'syncing' ? 'Syncing…' : status === 'error' ? 'Sync paused' : `Synced ${ago(lastSync)}`}
+      {status === 'syncing' ? 'Syncing…' : status === 'error' ? 'Sync paused' : lastSync ? `Synced ${ago(lastSync)}` : 'Not synced yet'}
     </span>
   )
 }
