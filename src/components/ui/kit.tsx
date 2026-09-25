@@ -68,11 +68,12 @@ export function Dialog({
         if (dismissable) onClose()
       }}
       onClick={(e) => dismissable && e.target === ref.current && onClose()}
-      className={`m-auto max-h-[90vh] w-[min(92vw,460px)] overflow-visible rounded-2xl bg-transparent p-0 text-[#f8f4ea] backdrop:bg-black/60 backdrop:backdrop-blur-[2px] open:animate-[dialog-in_.28s_cubic-bezier(.2,.9,.3,1.2)] ${className}`}
+      className={`m-auto max-h-[calc(100dvh-1.5rem)] w-[min(92vw,460px)] overflow-visible rounded-2xl bg-transparent p-0 text-[#f8f4ea] backdrop:bg-black/60 backdrop:backdrop-blur-[2px] open:animate-[dialog-in_.28s_cubic-bezier(.2,.9,.3,1.2)] ${className}`}
     >
-      <div className="relative rounded-2xl border border-[#d4af5a]/40 bg-[radial-gradient(ellipse_at_top,#1f5a3b_0%,#0d3322_60%,#0a2519_100%)] p-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)]">
-        <div className="pointer-events-none absolute inset-1.5 rounded-xl border border-[#d4af5a]/20" />
-        <div className="relative mb-4 flex items-center justify-between">
+      <div className="relative flex max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-[#d4af5a]/40 bg-[radial-gradient(ellipse_at_top,#1f5a3b_0%,#0d3322_60%,#0a2519_100%)] shadow-[0_30px_80px_-20px_rgba(0,0,0,.9),inset_0_1px_0_rgba(255,255,255,.08)]">
+        {/* frame stays put; only the content scrolls (tall dialogs on phones) */}
+        <div className="pointer-events-none absolute inset-1.5 z-10 rounded-xl border border-[#d4af5a]/20" />
+        <div className="relative flex items-center justify-between px-6 pt-6 pb-4">
           <h2 className="gold-text font-serif text-2xl font-bold">{title}</h2>
           {dismissable && (
             <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-[#e9dcb8] hover:bg-white/10">
@@ -82,7 +83,7 @@ export function Dialog({
             </button>
           )}
         </div>
-        <div className="relative">{children}</div>
+        <div className="relative min-h-0 overflow-y-auto overscroll-contain px-6 pb-6">{children}</div>
       </div>
     </dialog>
   )

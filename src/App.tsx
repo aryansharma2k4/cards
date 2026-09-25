@@ -32,6 +32,9 @@ export default function App() {
       const s = get()
       if (s.dialog === 'bust') return
       if (s.dialog) return set({ dialog: null })
+      // Any other open dialog (e.g. a hand breakdown on the Stats page) closes like Esc would.
+      const open = document.querySelector('dialog[open]')
+      if (open) return void open.dispatchEvent(new Event('cancel', { cancelable: true }))
       if (s.screen === 'table' && s.settings.panelOpen) return set({ settings: { ...s.settings, panelOpen: false } })
       if (s.screen === 'table') return set({ dialog: 'leave' })
       if (s.screen === 'stats') return set({ screen: 'lobby' })

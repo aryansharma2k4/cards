@@ -16,7 +16,8 @@ export const fastForward = () => heroFolded && get().settings.skipWhenFolded
 const speed = () => (fastForward() ? 0.03 : get().settings.speed === 'fast' ? 0.55 : 1)
 export const T = (ms: number) => ms * speed()
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, T(ms)))
-const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+const frame = () =>
+  fastForward() ? Promise.resolve() : new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
 const name = (seat: number) => (seat === HERO ? 'You' : (get().seats[seat]?.name ?? `Seat ${seat}`))
 const SUIT_GLYPH: Record<string, string> = { s: '♠', h: '♥', d: '♦', c: '♣' }

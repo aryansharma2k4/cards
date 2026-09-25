@@ -160,6 +160,10 @@ export const useGame = create<State>()(
 export const set = useGame.setState
 export const get = useGame.getState
 
+// localStorage hydrates synchronously above; write the merged result straight back so storage
+// matches memory (e.g. table chips returned to the bankroll after the app was killed).
+set({})
+
 export function patchSeat(i: number, patch: Partial<SeatView>) {
   set((s) => {
     const seats = s.seats.slice()
@@ -176,6 +180,9 @@ export function log(text: string) {
 let flyerId = 0
 /** Launch an animated sprite; resolves when it lands. */
 export function fly(f: Omit<Flyer, 'id' | 'resolve'>): Promise<void> {
+  // Near-zero durations (fast-forward after folding) skip the sprite: waiting on even one
+  // animation frame per flight adds up on slow phones.
+  if (f.duration < 30) return Promise.resolve()
   return new Promise((resolve) => {
     set((s) => ({ flyers: [...s.flyers, { ...f, id: flyerId++, resolve }] }))
   })
