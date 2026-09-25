@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { equity } from './mc'
-import { decide, makePersonality, niceAmount, type Situation, type Style } from './bot'
+import { equity, equityVsRange } from './mc'
+import { decide, makePersonality, niceAmount, shoveRange, type Situation, type Style } from './bot'
 import type { Action } from '../engine/engine'
 import { PokerEngine } from '../engine/engine'
 
@@ -72,4 +72,44 @@ describe('bot', () => {
       engine.seats().forEach((s, i) => expect(s?.stack ?? 0).toBe(reported[i] ?? 0))
     }
   })
+
+  it('stops folding to a player who shoves every hand', () => {
+    // Hero (seat 0) open-shoves 100bb every hand at a full table, the way the app's controller runs it.
+    const styles: Style[] = ['TAG', 'LAG', 'ROCK', 'STATION', 'TAG']
+    const bots = styles.map((s) => makePersonality(s))
+    const read = { hands: 0, shoves: 0 }
+    const folds: boolean[] = []
+    for (let h = 0; h < 60; h++) {
+      const engine = new PokerEngine({ smallBlind: 5, bigBlind: 10, numSeats: 6 })
+      for (let i = 0; i < 6; i++) engine.sitDown(i, 1000)
+      read.hands++
+      engine.startHand()
+      let called = false
+      while (engine.toAct !== null) {
+        const seat = engine.toAct
+        const legal = engine.getLegalActions(seat)!
+        if (seat === 0) {
+          const shove = legal.actions.includes('raise') ? { type: 'raise' as const, amount: legal.max } : { type: 'call' as const }
+          if (shove.type === 'raise') read.shoves++
+          engine.act(0, shove)
+          continue
+        }
+        const me = engine.seats()[seat]!
+        const seats = engine.seats()
+        const top = Math.max(...seats.map((p) => p?.bet ?? 0))
+        const facingShove = engine.street === 'preflop' && (seats[0]?.stack ?? 1) === 0 && top >= 150
+        const inPot = engine.activeSeats().filter((i) => i !== seat && (seats[i]?.bet ?? 0) === top).length
+        const hole = engine.holeCardsFor(seat)!
+        const eq = facingShove ? equityVsRange(hole, inPot, shoveRange(read.hands, read.shoves), 150) : equity(hole, engine.board, 1, 60)
+        const a = decide(bots[seat - 1], { legal, equity: eq, pot: engine.potTotal(), stack: me.stack, bet: me.bet, bb: 10, unit: 5, street: engine.street, opponents: engine.activeSeats().length - 1, position: 0.5, facingShove }, 'hard')
+        if (facingShove && a.type === 'call') called = true
+        engine.act(seat, a)
+      }
+      folds.push(!called)
+    }
+    const rate = (xs: boolean[]) => xs.filter(Boolean).length / xs.length
+    // First few shoves mostly get through; once it's a pattern the table calls it off.
+    expect(rate(folds.slice(20))).toBeLessThan(0.35)
+  })
 })
+

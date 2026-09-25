@@ -1,6 +1,6 @@
 import { PokerEngine, type Action, type EngineEvent } from '../engine/engine'
 import { DENOMS, breakdown } from '../engine/chips'
-import { decide, makePersonality, type Difficulty, type Style } from '../ai/bot'
+import { decide, makePersonality, shoveRange, type Difficulty, type Style } from '../ai/bot'
 import { requestEquity } from '../ai/equity'
 import { play, setAmbient } from '../audio/sound'
 import { AI_SEATS, HERO, NUM_SEATS } from '../ui/geometry'
@@ -65,6 +65,9 @@ class Controller {
   private heroResolve: ((a: Action) => void) | null = null
   private bustResolve: ((rebuy: boolean) => void) | null = null
   private thinkKey = 0
+  /** What the bots have seen each seat do: hands played and pre-flop shoves (reset when the player changes). */
+  private reads = new Map<number, { hands: number; shoves: number }>()
+  private shovedThisHand = new Set<number>()
   private recorder = new Recorder({
     hero: HERO,
     numSeats: NUM_SEATS,
@@ -78,7 +81,9 @@ class Controller {
     const engine = new PokerEngine({ smallBlind: sb, bigBlind: bb, numSeats: NUM_SEATS, heroSeat: HERO })
     engine.on((e) => this.queue.push(e))
     engine.on((e) => this.recorder.onEvent(e))
+    engine.on((e) => this.observe(e))
     this.engine = engine
+    this.reads.clear()
     this.queue = []
 
     const seats: (SeatView | null)[] = Array(NUM_SEATS).fill(null)
@@ -142,6 +147,8 @@ class Controller {
       if (!this.alive(gen)) return
       if (!(await this.seatPlayers(gen))) return
 
+      this.shovedThisHand.clear()
+      engine.seats().forEach((p, i) => p && this.read(i).hands++)
       engine.startHand()
       await this.drain(gen)
       while (this.alive(gen) && engine.inProgress) {
@@ -185,6 +192,7 @@ class Controller {
     // Busted bots leave; fresh ones sit down.
     for (const i of AI_SEATS[cfg.opponents]) {
       if (occupied[i]) continue
+      this.reads.delete(i) // a new player: the bots know nothing about them yet
       const old = get().seats[i]
       if (old) {
         log(`${old.name} leaves the table`)
@@ -259,6 +267,22 @@ class Controller {
 
   // ---- bots ----
 
+  private read(seat: number) {
+    let r = this.reads.get(seat)
+    if (!r) this.reads.set(seat, (r = { hands: 0, shoves: 0 }))
+    return r
+  }
+
+  /** Remember pre-flop shoves of 15+ big blinds (short-stack all-ins don't say much). */
+  private observe(e: EngineEvent) {
+    const engine = this.engine
+    if (!engine || e.type !== 'action' || !e.allIn || engine.street !== 'preflop') return
+    if ((e.action === 'bet' || e.action === 'raise') && e.bet >= 15 * get().table!.bb && !this.shovedThisHand.has(e.seat)) {
+      this.shovedThisHand.add(e.seat)
+      this.read(e.seat).shoves++
+    }
+  }
+
   private async botTurn(seat: number, gen: number): Promise<Action> {
     const engine = this.engine!
     const legal = engine.getLegalActions(seat)!
@@ -274,9 +298,17 @@ class Controller {
 
     const iterations = fastForward() ? 500 : { easy: 800, normal: 1500, hard: 3000 }[difficulty]
     // Pre-flop bots judge hand strength heads-up; after the flop, against everyone still in.
-    const vs = engine.street === 'preflop' ? 1 : opponents
+    // Facing a pre-flop shove they weigh it against what that player shoves with, and against
+    // anyone who has already called it.
+    const seats = engine.seats()
+    const top = Math.max(...seats.map((p) => p?.bet ?? 0))
+    const shover = engine.street === 'preflop' && legal.toCall > 0 ? seats.findIndex((p, i) => i !== seat && p && p.stack === 0 && p.bet === top && top >= 15 * get().table!.bb) : -1
+    const facingShove = shover >= 0
+    const inPot = facingShove ? active.filter((i) => i !== seat && (seats[i]?.bet ?? 0) === top).length : 0
+    const range = facingShove ? shoveRange(this.read(shover).hands, this.read(shover).shoves) : undefined
+    const vs = facingShove ? inPot : engine.street === 'preflop' ? 1 : opponents
     const [equity] = await Promise.all([
-      requestEquity(engine.holeCardsFor(seat)!, engine.board, vs, iterations),
+      requestEquity(engine.holeCardsFor(seat)!, engine.board, vs, iterations, range),
       new Promise((r) => setTimeout(r, ms)),
     ])
     if (!this.alive(gen)) return { type: 'fold' }
@@ -287,7 +319,7 @@ class Controller {
     const position = order.length > 1 ? order.indexOf(seat) / (order.length - 1) : 1
     return decide(
       get().seats[seat]!.personality!,
-      { legal, equity, pot, stack: me.stack, bet: me.bet, bb: get().table!.bb, unit: get().table!.unit, street: engine.street, opponents, position },
+      { legal, equity, pot, stack: me.stack, bet: me.bet, bb: get().table!.bb, unit: get().table!.unit, street: engine.street, opponents, position, facingShove },
       difficulty,
     )
   }

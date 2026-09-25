@@ -5,7 +5,7 @@ let nextId = 0
 const pending = new Map<number, (v: number) => void>()
 
 /** Equity via the Web Worker so simulations never block the UI thread. */
-export function requestEquity(hole: string[], board: string[], opponents: number, iterations = 2000): Promise<number> {
+export function requestEquity(hole: string[], board: string[], opponents: number, iterations = 2000, range?: number): Promise<number> {
   if (!worker) {
     worker = new Worker(new URL('./equity.worker.ts', import.meta.url), { type: 'module' })
     worker.onmessage = (e: MessageEvent<{ id: number; equity: number }>) => {
@@ -16,6 +16,6 @@ export function requestEquity(hole: string[], board: string[], opponents: number
   const id = nextId++
   return new Promise((resolve) => {
     pending.set(id, resolve)
-    worker!.postMessage({ id, hole, board, opponents, iterations } satisfies EquityRequest)
+    worker!.postMessage({ id, hole, board, opponents, iterations, range } satisfies EquityRequest)
   })
 }

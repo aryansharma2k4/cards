@@ -44,6 +44,19 @@ export interface Situation {
   opponents: number
   /** 0 = first to act, 1 = on the button. */
   position: number
+  /** Facing a pre-flop all-in; `equity` is then against the shover's estimated range. */
+  facingShove?: boolean
+}
+
+/**
+ * Share of starting hands a player shoves with, estimated from how often they've open-shoved at
+ * this table. Starts tight (a 100bb shove from a stranger is usually a big hand) and widens as
+ * they keep doing it, so someone who shoves every hand gets called light.
+ */
+export function shoveRange(hands: number, shoves: number) {
+  const PRIOR = 0.07
+  const WEIGHT = 8 // hands of evidence the prior is worth
+  return Math.min(1, Math.max(0.03, (PRIOR * WEIGHT + shoves) / (WEIGHT + hands)))
 }
 
 const NOISE: Record<Difficulty, number> = { easy: 0.14, normal: 0.06, hard: 0.02 }
@@ -77,6 +90,11 @@ export function decide(p: Personality, s: Situation, difficulty: Difficulty = 'n
   const call = (): Action => (can('call') ? { type: 'call' } : { type: 'check' })
   const canSize = legal.min !== undefined && (can('bet') || can('raise'))
   const biggest = s.bet + toCall
+
+  if (pre && s.facingShove) {
+    // Priced against the shover's range: call when the pot odds say so (stations a bit lighter).
+    return eq > potOdds + 0.03 - p.sticky * 0.05 ? call() : passive()
+  }
 
   if (pre) {
     // Pre-flop `equity` is heads-up equity vs a random hand: a count-independent hand
