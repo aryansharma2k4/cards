@@ -36,6 +36,7 @@ Then list it here with its author, URL and license. If the file is missing, the 
 ## Fonts
 
 - **Manrope** by Mikhail Sharanda, SIL Open Font License 1.1 (via `@fontsource-variable/manrope`)
+- **Source Serif 4** by Frank Grießhammer / Adobe, SIL Open Font License 1.1 (via `@fontsource-variable/source-serif-4`): card rank indices
 
 ## Code libraries
 

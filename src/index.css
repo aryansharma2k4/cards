@@ -1,10 +1,13 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/manrope';
+@import '@fontsource-variable/source-serif-4';
 
 @theme {
   /* One clean face everywhere: card indices, chips, amounts, headings (like a casino deck's index). */
   --font-display: 'Manrope Variable', system-ui, sans-serif;
   --font-sans: 'Manrope Variable', system-ui, sans-serif;
+  /* Classic playing-card index (rank letters on the cards only). */
+  --font-card: 'Source Serif 4 Variable', Georgia, serif;
   --color-felt: #145236;
   --color-felt-deep: #0b3421;
   --color-wood: #4a2314;

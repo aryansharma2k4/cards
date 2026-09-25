@@ -12,7 +12,7 @@ export const CardFace = memo(function CardFace({ code }: { code: string }) {
   const col = suitColor(s)
   const index = (
     <g>
-      <text x="30" y="60" textAnchor="middle" fontFamily="var(--font-display)" fontWeight="800" fontSize={label.length > 1 ? 50 : 60} fill={col} letterSpacing={label.length > 1 ? -4 : 0}>
+      <text x="30" y="60" textAnchor="middle" fontFamily="var(--font-card)" fontWeight="700" fontSize={label.length > 1 ? 52 : 62} fill={col} letterSpacing={label.length > 1 ? -5 : 0}>
         {label}
       </text>
       <Suit s={s} x={30} y={90} size={32} />
@@ -26,6 +26,7 @@ export const CardFace = memo(function CardFace({ code }: { code: string }) {
     <svg viewBox="0 0 250 350" width="100%" height="100%" role="img" aria-label={cardName(code)}>
       <rect width="250" height="350" rx="15" fill="url(#card-stock)" />
       <rect width="250" height="350" rx="15" filter="url(#paper)" fill="#fff" />
+      <rect width="250" height="350" rx="15" fill="url(#linen)" />
       <rect x="1" y="1" width="248" height="348" rx="14" fill="none" stroke="#d9d0bd" strokeWidth="2" />
       {index}
       <g transform="rotate(180 125 175)">{index}</g>
