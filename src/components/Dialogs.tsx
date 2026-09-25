@@ -195,3 +195,22 @@ export function LogDrawer() {
     </aside>
   )
 }
+
+/** "Leave the table?" (phone back button / leave icon). */
+export function LeaveDialog() {
+  const open = useGame((s) => s.dialog === 'leave')
+  const stack = useGame((s) => s.seats[0]?.stack ?? 0)
+  return (
+    <Dialog open={open} onClose={close} title="Leave the table?">
+      <p className="mb-5 text-[15px] text-[#efe6cf]">Your {formatMoney(stack)} goes back to your bankroll. Chips already in the pot this hand stay there.</p>
+      <div className="flex justify-end gap-3">
+        <Button variant="wood" onClick={close} autoFocus>
+          Keep playing
+        </Button>
+        <Button variant="danger" onClick={() => game.leave()}>
+          Leave
+        </Button>
+      </div>
+    </Dialog>
+  )
+}

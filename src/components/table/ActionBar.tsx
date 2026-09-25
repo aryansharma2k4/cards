@@ -5,6 +5,7 @@ import { checkPile, quickTarget } from '../../game/betting'
 import { formatMoney, pay, type Rack } from '../../engine/chips'
 import { play } from '../../audio/sound'
 import { Button, Slider } from '../ui/kit'
+import { MOBILE } from '../../ui/device'
 
 const expand = (r: Rack) =>
   Object.entries(r)
@@ -81,15 +82,19 @@ export function ActionBar() {
 
   return (
     <div
-      className="absolute flex flex-col gap-2 rounded-2xl border border-[#d4af5a]/35 bg-[linear-gradient(180deg,rgba(24,18,12,.92),rgba(10,8,6,.95))] p-3 shadow-[0_20px_50px_-15px_rgba(0,0,0,.95)]"
-      style={{ left: 1150, top: 824, width: 430, zIndex: 30 }}
+      className={
+        MOBILE
+          ? 'flex flex-col gap-1.5'
+          : 'absolute flex flex-col gap-2 rounded-2xl border border-[#d4af5a]/35 bg-[linear-gradient(180deg,rgba(24,18,12,.92),rgba(10,8,6,.95))] p-3 shadow-[0_20px_50px_-15px_rgba(0,0,0,.95)]'
+      }
+      style={MOBILE ? undefined : { left: 1150, top: 824, width: 430, zIndex: 30 }}
       aria-label="Your actions"
     >
-      <div className="flex h-6 items-center justify-between text-[15px]">
+      <div className={`flex items-center justify-between ${MOBILE ? 'min-h-5 text-[12px] leading-tight' : 'h-6 text-[15px]'}`}>
         {waiting ? (
           <span className="text-[#bfb49a]">{heroSeat?.folded ? 'You folded, finishing the hand…' : 'Waiting for opponents…'}</span>
         ) : check?.hint ? (
-          <span className="font-semibold text-[#ffcf8a]" role="alert">{check.hint}</span>
+          <span className="font-semibold text-[#ffcf8a]" role="alert">{MOBILE ? check.hint.replace('Click', 'Tap') : check.hint}</span>
         ) : (
           <span className="text-[#bfb49a]">
             {legal!.toCall > 0 ? `${formatMoney(legal!.toCall)} to call` : 'Your action'}
@@ -103,7 +108,7 @@ export function ActionBar() {
         )}
       </div>
 
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className={MOBILE ? 'grid grid-cols-5 gap-1' : 'grid grid-cols-5 gap-1.5'}>
         {(
           [
             ['min', 'Min'],
@@ -113,8 +118,8 @@ export function ActionBar() {
             ['max', 'All-in'],
           ] as const
         ).map(([k, l]) => (
-          <Button key={k} size="sm" variant="felt" disabled={!canSize} onClick={() => act.quick(k)} className="px-0">
-            {l}
+          <Button key={k} size="sm" variant="felt" disabled={!canSize} onClick={() => act.quick(k)} className={MOBILE ? 'h-9 px-0 text-[11px] tracking-normal' : 'px-0'}>
+            {MOBILE && l.endsWith(' Pot') ? l.replace(' Pot', '') : l}
           </Button>
         ))}
       </div>
@@ -133,11 +138,32 @@ export function ActionBar() {
             play('chip', { minGap: 70, volume: 0.6 })
           }}
         />
-        <span className="w-24 shrink-0 text-right font-serif text-[19px] font-bold tabular-nums text-[#f6e6b4]">
+        <span className={`shrink-0 text-right font-serif font-bold tabular-nums text-[#f6e6b4] ${MOBILE ? 'w-16 text-[14px]' : 'w-24 text-[19px]'}`}>
           {canSize ? formatMoney(sliderVal) : '—'}
         </span>
       </div>
 
+      {MOBILE ? (
+        <>
+          {check?.action && total > 0 ? (
+            <Button variant="gold" onClick={act.confirm} className="h-12 w-full text-[16px]">
+              {check.label}
+            </Button>
+          ) : (
+            <Button variant="gold" disabled={waiting} onClick={act.allIn} className="h-12 w-full text-[16px]">
+              All-in
+            </Button>
+          )}
+          <div className="grid grid-cols-2 gap-1.5">
+            <Button variant="danger" disabled={waiting} onClick={act.fold} className="h-12 px-1 text-[15px]">
+              Fold
+            </Button>
+            <Button variant="wood" disabled={waiting} onClick={act.checkCall} className="h-12 px-1 text-[14px]">
+              {waiting ? 'Check' : canCheck ? 'Check' : legal!.toCall >= (ctx?.stack ?? 0) ? `All-in ${formatMoney(legal!.toCall)}` : `Call ${formatMoney(legal!.toCall)}`}
+            </Button>
+          </div>
+        </>
+      ) : (
       <div className="flex gap-2">
         <Button variant="danger" kbd="F" disabled={waiting} onClick={act.fold} className="px-4">
           Fold
@@ -155,6 +181,7 @@ export function ActionBar() {
           </Button>
         )}
       </div>
+      )}
     </div>
   )
 }

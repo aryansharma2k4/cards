@@ -1,5 +1,6 @@
 import { HAND_NAMES } from '../engine/evaluate'
 import { useGame, set } from '../game/store'
+import { MOBILE } from '../ui/device'
 
 // High card → Royal flush, matching HAND_NAMES order.
 const EX: string[] = [
@@ -37,9 +38,10 @@ export function HandPanel() {
   const showEquity = useGame((s) => s.settings.showEquity)
   const toggle = () => set((s) => ({ settings: { ...s.settings, panelOpen: !s.settings.panelOpen } }))
 
+  if (MOBILE && !open) return null
   return (
     <aside
-      className={`relative z-20 flex h-full shrink-0 flex-col border-r border-[#d4af5a]/25 bg-[linear-gradient(180deg,rgba(20,14,9,.92),rgba(8,6,4,.96))] shadow-[8px_0_30px_-10px_rgba(0,0,0,.9)] transition-[width] duration-300 ease-out ${
+      className={`${MOBILE ? 'absolute left-0 top-0 z-40' : 'relative z-20'} flex h-full shrink-0 flex-col border-r border-[#d4af5a]/25 bg-[linear-gradient(180deg,rgba(20,14,9,.92),rgba(8,6,4,.96))] shadow-[8px_0_30px_-10px_rgba(0,0,0,.9)] transition-[width] duration-300 ease-out ${
         open ? 'w-[250px]' : 'w-[46px]'
       }`}
       aria-label="Hand rankings"

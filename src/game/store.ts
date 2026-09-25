@@ -99,7 +99,7 @@ interface State {
   equity: number | null
   banner: { title: string; detail: string; hero: boolean } | null
   log: { id: number; text: string }[]
-  dialog: null | 'settings' | 'bust' | 'colorup' | 'log'
+  dialog: null | 'settings' | 'bust' | 'colorup' | 'log' | 'leave'
   paused: boolean
   colorUpHint: boolean
   /** Full-screen mode: only the table and hand rankings. */

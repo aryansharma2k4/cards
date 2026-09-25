@@ -7,6 +7,9 @@ import { Stats } from './screens/Stats'
 import { useGame } from './game/store'
 import { initAudio, setMasterVolume } from './audio/sound'
 import { startCloud } from './cloud/sync'
+import { App as NativeApp } from '@capacitor/app'
+import { NATIVE } from './ui/device'
+import { get, set } from './game/store'
 
 export default function App() {
   const screen = useGame((s) => s.screen)
@@ -23,6 +26,18 @@ export default function App() {
     window.addEventListener('pointerdown', unlock, { once: true })
     window.addEventListener('keydown', unlock, { once: true })
     void startCloud()
+    if (!NATIVE) return
+    // Android back: close what's open, then step back toward the lobby, then exit.
+    const sub = NativeApp.addListener('backButton', () => {
+      const s = get()
+      if (s.dialog === 'bust') return
+      if (s.dialog) return set({ dialog: null })
+      if (s.screen === 'table' && s.settings.panelOpen) return set({ settings: { ...s.settings, panelOpen: false } })
+      if (s.screen === 'table') return set({ dialog: 'leave' })
+      if (s.screen === 'stats') return set({ screen: 'lobby' })
+      void NativeApp.exitApp()
+    })
+    return () => void sub.then((h) => h.remove())
   }, [])
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { set, useGame } from '../game/store'
 import { game } from '../game/controller'
 import { formatMoney } from '../engine/chips'
@@ -6,10 +6,11 @@ import { Stage } from '../components/table/Stage'
 import { TableArt } from '../components/table/TableArt'
 import { Banner, Board, DealerButton, Seats } from '../components/table/Seats'
 import { Flyers } from '../components/table/Flyers'
-import { Rack } from '../components/table/Rack'
+import { PanelRack, Rack } from '../components/table/Rack'
+import { MOBILE } from '../ui/device'
 import { ActionBar } from '../components/table/ActionBar'
 import { HandPanel } from '../components/HandPanel'
-import { BustDialog, ColorUpDialog, LogDrawer } from '../components/Dialogs'
+import { BustDialog, ColorUpDialog, LeaveDialog, LogDrawer } from '../components/Dialogs'
 import { Button } from '../components/ui/kit'
 import { Chip } from '../components/chips/Chip'
 
@@ -78,6 +79,84 @@ function Hud() {
   )
 }
 
+const ICONS = {
+  hands: 'M4 5h16v14H4zM8 9h8M8 13h5',
+}
+
+/** Phone HUD: a menu button and the hand-rankings toggle, tucked in the top-left corner. */
+function MobileHud() {
+  const paused = useGame((s) => s.paused)
+  const table = useGame((s) => s.table)!
+  const [menu, setMenu] = useState(false)
+  const btn = 'grid h-10 w-10 place-items-center rounded-full bg-black/55 text-[#efe6cf] ring-1 ring-[#d4af5a]/40 active:scale-90'
+  const toggleHands = () => set((s) => ({ settings: { ...s.settings, panelOpen: !s.settings.panelOpen } }))
+  const item = (label: string, onClick: () => void, danger = false) => (
+    <button
+      key={label}
+      onClick={() => {
+        setMenu(false)
+        onClick()
+      }}
+      className={`block w-full px-4 py-2.5 text-left text-[15px] active:bg-white/10 ${danger ? 'text-[#ffb4a8]' : 'text-[#efe6cf]'}`}
+    >
+      {label}
+    </button>
+  )
+  return (
+    <div className="absolute left-2 top-2 z-30" style={{ paddingLeft: 'env(safe-area-inset-left)' }}>
+      <div className="flex items-center gap-1.5">
+        <button className={btn} onClick={() => setMenu(!menu)} aria-label="Menu" aria-expanded={menu}>
+          <Icon d="M4 7h16M4 12h16M4 17h16" />
+        </button>
+        <button className={btn} onClick={toggleHands} aria-label="Hand rankings">
+          <Icon d={ICONS.hands} />
+        </button>
+        {paused && <span className="rounded-full bg-[#c9a24a] px-2 py-1 text-[11px] font-bold text-[#241808]">Paused</span>}
+      </div>
+      {menu && (
+        <div className="mt-2 w-52 overflow-hidden rounded-xl bg-[#140e09]/97 py-1 shadow-2xl ring-1 ring-[#d4af5a]/40" role="menu">
+          <div className="px-4 py-1.5 text-[11px] text-[#9d937c]">
+            Blinds {formatMoney(table.sb)}/{formatMoney(table.bb)}
+          </div>
+          {item(paused ? 'Resume' : 'Pause after this hand', () => set({ paused: !paused }))}
+          {item('Hand history', () => set({ dialog: 'log' }))}
+          {item('Settings', () => set({ dialog: 'settings' }))}
+          {item('Leave table', () => set({ dialog: 'leave' }), true)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Phone side panel: your hand, actions and a tappable chip rack. */
+function SidePanel() {
+  const hand = useGame((s) => s.heroHand)
+  const equity = useGame((s) => s.equity)
+  const hint = useGame((s) => s.colorUpHint)
+  return (
+    <aside
+      className="flex h-full w-[236px] shrink-0 flex-col gap-2 overflow-y-auto border-l border-[#d4af5a]/25 bg-[linear-gradient(180deg,rgba(22,16,11,.97),rgba(8,6,4,.98))] p-2"
+      style={{ paddingRight: 'max(0.5rem, env(safe-area-inset-right))' }}
+    >
+      <div className="flex items-baseline justify-between text-[12px]">
+        <span className="truncate font-serif text-[14px] font-bold text-[#f6e6b4]">{hand?.label ?? '—'}</span>
+        {hand && equity !== null && <span className="text-[#bfb49a]">{Math.round(equity * 100)}%</span>}
+      </div>
+      <ActionBar />
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d4af5a]/70">Tap chips to bet</span>
+        <button
+          onClick={() => set({ dialog: 'colorup', colorUpHint: false })}
+          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-[#f6e6b4] ring-1 ring-[#d4af5a]/50 ${hint ? 'bg-[#c9a24a]/30' : ''}`}
+        >
+          Color up
+        </button>
+      </div>
+      <PanelRack />
+    </aside>
+  )
+}
+
 function ColorUpButton() {
   const hint = useGame((s) => s.colorUpHint)
   return (
@@ -109,8 +188,8 @@ export function TableScreen() {
   }, [])
   return (
     <div className="flex h-full" style={{ background: 'radial-gradient(ellipse at 50% 42%, #2b1a0f 0%, #140c07 45%, #060403 100%)' }}>
-      <HandPanel />
-      <main className="relative h-full min-w-0 flex-1">
+      {!MOBILE && <HandPanel />}
+      <main className="relative h-full min-w-0 flex-1" style={MOBILE ? { paddingLeft: 'env(safe-area-inset-left)' } : undefined}>
         <div
           className="pointer-events-none absolute inset-0 opacity-40"
           style={{
@@ -119,20 +198,25 @@ export function TableScreen() {
           }}
           aria-hidden
         />
-        <div className={`absolute inset-x-0 bottom-0 ${focus ? 'top-0' : 'top-12'}`}>
+        <div className={`absolute inset-x-0 bottom-0 ${focus || MOBILE ? 'top-0' : 'top-12'}`}>
         <Stage>
           <TableArt />
           <Board />
           <Seats />
           <DealerButton />
           <Rack />
-          <ActionBar />
-          <ColorUpButton />
+          {!MOBILE && <ActionBar />}
+          {!MOBILE && <ColorUpButton />}
           <Banner />
           <Flyers />
         </Stage>
         </div>
-        {focus ? (
+        {MOBILE ? (
+          <>
+            <MobileHud />
+            <HandPanel />
+          </>
+        ) : focus ? (
           <button
             onClick={() => setFocus(false)}
             aria-label="Exit full screen"
@@ -145,7 +229,9 @@ export function TableScreen() {
           <Hud />
         )}
       </main>
+      {MOBILE && <SidePanel />}
       {!focus && <LogDrawer />}
+      <LeaveDialog />
       <BustDialog />
       <ColorUpDialog />
     </div>

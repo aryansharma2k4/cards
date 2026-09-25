@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { create } from 'zustand'
 import { denomsDesc, formatMoney, chipLabel } from '../../engine/chips'
 import { fly, get, set, useGame } from '../../game/store'
 import { play } from '../../audio/sound'
 import { T } from '../../game/director'
-import { PILE, RACK, rackStack } from '../../ui/geometry'
+import { PILE, RACK, STAGE, rackStack, type Pt } from '../../ui/geometry'
+import { MOBILE } from '../../ui/device'
+import { Chip } from '../chips/Chip'
 import { ChipStack, stackHeight } from '../chips/Chip'
 import { ChipCluster } from '../chips/ChipPile'
 
@@ -16,37 +18,72 @@ export const canBuild = () => {
   return !!l && (l.actions.includes('call') || l.actions.includes('bet') || l.actions.includes('raise'))
 }
 
+/** Chips currently flying to the pile (hidden from the pile until they land). */
+const useInFlight = create<{ n: number }>(() => ({ n: 0 }))
+
+/** Move one chip of `d` from the rack to the bet pile, flying from `from` (stage coords). */
+export function addChip(d: number, from: Pt) {
+  if (!canBuild() || !get().rack[d]) return
+  set((s) => ({ rack: { ...s.rack, [d]: s.rack[d] - 1 }, pile: [...s.pile, d] }))
+  play('chip', { minGap: 25 })
+  useInFlight.setState((s) => ({ n: s.n + 1 }))
+  fly({ kind: 'chips', from, to: PILE, duration: T(260), chips: [d] }).then(() => useInFlight.setState((s) => ({ n: s.n - 1 })))
+}
+
+/** Take the last chip off the pile. */
+export function undoChip() {
+  const { pile } = get()
+  if (!pile.length) return
+  const d = pile[pile.length - 1]
+  set((s) => ({ pile: s.pile.slice(0, -1), rack: { ...s.rack, [d]: (s.rack[d] ?? 0) + 1 } }))
+  play('chip', { rate: 0.9 })
+}
+
+/** Phone rack: a grid of tappable chips in the side panel. Chips fly in from the table's right edge. */
+export function PanelRack() {
+  const rack = useGame((s) => s.rack)
+  const legal = useGame((s) => s.legal)
+  const active = !!legal && canBuild()
+  return (
+    <div className="grid grid-cols-4 gap-1" aria-label="Your chips">
+      {denomsDesc(rack).map((d) => (
+        <button
+          key={d}
+          onClick={() => addChip(d, { x: STAGE.w - 20, y: PILE.y })}
+          disabled={!active}
+          aria-label={`Add a ${formatMoney(d)} chip to your bet (${rack[d]} in rack)`}
+          className="flex flex-col items-center rounded-lg py-1 transition active:scale-90 enabled:bg-white/[.04] disabled:opacity-60"
+        >
+          <Chip denom={d} size={40} />
+          <span className="mt-0.5 text-[11px] font-bold tabular-nums leading-none text-[#efe6cf]">×{rack[d]}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function Rack() {
   const rack = useGame((s) => s.rack)
   const pile = useGame((s) => s.pile)
   const legal = useGame((s) => s.legal)
-  const [inFlight, setInFlight] = useState(0)
+  const inFlight = useInFlight((s) => s.n)
   const denoms = denomsDesc(rack)
   const active = !!legal && canBuild()
 
   const add = (d: number, i: number) => {
-    if (!canBuild() || !get().rack[d]) return
-    set((s) => ({ rack: { ...s.rack, [d]: s.rack[d] - 1 }, pile: [...s.pile, d] }))
-    play('chip', { minGap: 25 })
-    setInFlight((n) => n + 1)
     const from = rackStack(i, denoms.length)
     const h = stackHeight(Math.min(rack[d], MAX_VISIBLE), W)
-    fly({ kind: 'chips', from: { x: from.x, y: from.y - h + 12 }, to: PILE, duration: T(260), chips: [d] }).then(() => setInFlight((n) => n - 1))
+    addChip(d, { x: from.x, y: from.y - h + 12 })
   }
-
-  const undo = () => {
-    const { pile } = get()
-    if (!pile.length) return
-    const d = pile[pile.length - 1]
-    set((s) => ({ pile: s.pile.slice(0, -1), rack: { ...s.rack, [d]: (s.rack[d] ?? 0) + 1 } }))
-    play('chip', { rate: 0.9 })
-  }
+  const undo = undoChip
 
   const shown = pile.slice(0, Math.max(0, pile.length - inFlight))
   const total = pile.reduce((a, b) => a + b, 0)
 
   return (
     <>
+      {!MOBILE && (
+        <>
       {/* wooden chip tray */}
       <div
         className="absolute rounded-[28px] border border-[#d4af5a]/40 shadow-[0_18px_40px_-12px_rgba(0,0,0,.95),inset_0_2px_0_rgba(255,255,255,.08)]"
@@ -90,6 +127,8 @@ export function Rack() {
           </button>
         )
       })}
+        </>
+      )}
       {pile.length > 0 && (
         <button
           onClick={undo}
@@ -98,8 +137,8 @@ export function Rack() {
           className="absolute flex flex-col items-center"
           style={{ left: PILE.x, top: PILE.y, transform: 'translate(-50%, -50%)', zIndex: 27 }}
         >
-          <ChipCluster chips={shown} width={40} max={16} />
-          <span className="mt-1 whitespace-nowrap rounded-full bg-[linear-gradient(180deg,#fbe7a6,#c9a24a)] px-3 py-0.5 text-[17px] font-bold tabular-nums text-[#241808] shadow-md">
+          <ChipCluster chips={shown} width={MOBILE ? 52 : 40} max={16} />
+          <span className={`mt-1 whitespace-nowrap rounded-full bg-[linear-gradient(180deg,#fbe7a6,#c9a24a)] px-3 py-0.5 ${MOBILE ? 'text-[25px]' : 'text-[17px]'} font-bold tabular-nums text-[#241808] shadow-md`}>
             {formatMoney(total)}
           </span>
         </button>

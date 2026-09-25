@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { MOBILE } from '../../ui/device'
 
 type Variant = 'gold' | 'wood' | 'ghost' | 'danger' | 'felt'
 
@@ -154,7 +155,7 @@ export function Segmented<T extends string | number>({
   disabled?: (v: T) => boolean
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+    <div role="radiogroup" aria-label={label} className={`flex flex-wrap ${MOBILE ? 'gap-1.5' : 'gap-2'}`}>
       {options.map((o) => {
         const on = o.value === value
         const off = disabled?.(o.value)
@@ -165,7 +166,7 @@ export function Segmented<T extends string | number>({
             aria-checked={on}
             disabled={off}
             onClick={() => onChange(o.value)}
-            className={`min-w-14 rounded-xl px-4 py-2.5 text-[15px] font-semibold transition duration-150 disabled:cursor-not-allowed disabled:opacity-35 ${
+            className={`${MOBILE ? 'min-w-11 px-2.5 py-1.5 text-[13px]' : 'min-w-14 px-4 py-2.5 text-[15px]'} rounded-xl font-semibold transition duration-150 disabled:cursor-not-allowed disabled:opacity-35 ${
               on
                 ? 'bg-[linear-gradient(180deg,#fbe7a6,#c9a24a)] text-[#241808] shadow-[0_0_0_1px_#f3dc9a,0_8px_20px_-8px_rgba(214,172,82,.7)]'
                 : 'bg-black/30 text-[#efe6cf] ring-1 ring-inset ring-[#d4af5a]/25 hover:ring-[#d4af5a]/60'

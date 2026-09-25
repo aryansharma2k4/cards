@@ -1,3 +1,4 @@
+import { MOBILE } from '../ui/device'
 import { useState } from 'react'
 import { BUY_INS, set, useGame } from '../game/store'
 import { game, blindsFor } from '../game/controller'
@@ -50,28 +51,30 @@ export function Lobby() {
   return (
     <div className="h-full overflow-y-auto" style={{ background: 'radial-gradient(ellipse at 30% 30%, #1d4a33 0%, #0c2419 38%, #070504 80%)' }}>
       <div className="pointer-events-none fixed inset-0 opacity-50" style={{ background: 'radial-gradient(ellipse at 70% 110%, rgba(90,40,20,.45), transparent 60%)' }} aria-hidden />
-      <div className="relative mx-auto flex min-h-full max-w-6xl flex-col items-center justify-center gap-10 px-4 py-10 lg:flex-row lg:gap-16">
-        <section className="flex-1 text-center lg:text-left">
+      <div className={MOBILE ? 'relative flex min-h-full items-center gap-6 px-6 py-4' : 'relative mx-auto flex min-h-full max-w-6xl flex-col items-center justify-center gap-10 px-4 py-10 lg:flex-row lg:gap-16'} style={MOBILE ? { paddingLeft: 'max(1.5rem, env(safe-area-inset-left))', paddingRight: 'max(1.5rem, env(safe-area-inset-right))' } : undefined}>
+        <section className={MOBILE ? 'w-[38%] shrink-0 text-left' : 'flex-1 text-center lg:text-left'}>
           <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.35em] text-[#d4af5a]/80">No-Limit Texas Hold'em</p>
-          <h1 className="gold-text font-serif text-[88px] font-bold leading-[0.9] sm:text-[120px]">cards</h1>
-          <p className="mx-auto mt-4 max-w-md text-[17px] leading-relaxed text-[#d8ccb0] lg:mx-0">
+          <h1 className={`gold-text font-serif font-bold leading-[0.9] ${MOBILE ? 'text-[72px]' : 'text-[88px] sm:text-[120px]'}`}>cards</h1>
+          <p className={MOBILE ? 'mt-2 text-[13px] leading-snug text-[#d8ccb0]' : 'mx-auto mt-4 max-w-md text-[17px] leading-relaxed text-[#d8ccb0] lg:mx-0'}>
             A private high-stakes table, a dealer who never misses, and five opponents who each play their own game.
           </p>
-          <div className="mt-8">
-            <Flourish />
-          </div>
+          {!MOBILE && (
+            <div className="mt-8">
+              <Flourish />
+            </div>
+          )}
         </section>
 
         <section
           aria-label="Choose your table"
-          className="relative w-full max-w-[460px] rounded-3xl border border-[#d4af5a]/40 bg-[linear-gradient(180deg,rgba(24,18,12,.9),rgba(10,8,6,.94))] p-7 shadow-[0_40px_90px_-30px_rgba(0,0,0,.95),inset_0_1px_0_rgba(255,255,255,.06)]"
+          className={`relative w-full max-w-[460px] rounded-3xl border border-[#d4af5a]/40 bg-[linear-gradient(180deg,rgba(24,18,12,.9),rgba(10,8,6,.94))] ${MOBILE ? 'p-4' : 'p-7'} shadow-[0_40px_90px_-30px_rgba(0,0,0,.95),inset_0_1px_0_rgba(255,255,255,.06)]`}
         >
           <div className="pointer-events-none absolute inset-2 rounded-[20px] border border-[#d4af5a]/15" />
           <div className="relative">
             <div className="flex items-end justify-between">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#d4af5a]/80">Bankroll</div>
-                <div className="font-serif text-[40px] font-bold tabular-nums leading-tight text-[#f6e6b4]">{formatMoney(bankroll)}</div>
+                <div className={`font-serif ${MOBILE ? 'text-[28px]' : 'text-[40px]'} font-bold tabular-nums leading-tight text-[#f6e6b4]`}>{formatMoney(bankroll)}</div>
                 <CloudBadge />
               </div>
               <div className="flex gap-2">
@@ -84,8 +87,8 @@ export function Lobby() {
               </div>
             </div>
 
-            <fieldset className="mt-6">
-              <legend className="mb-2 text-[13px] font-semibold text-[#e9dcb8]">Buy-in</legend>
+            <fieldset className={MOBILE ? 'mt-2' : 'mt-6'}>
+              <legend className={`${MOBILE ? 'mb-1 text-[12px]' : 'mb-2 text-[13px]'} font-semibold text-[#e9dcb8]`}>Buy-in</legend>
               <Segmented
                 label="Buy-in"
                 value={buyIn}
@@ -93,18 +96,18 @@ export function Lobby() {
                 disabled={(v) => v > bankroll}
                 options={BUY_INS.map((b) => ({ value: b, label: formatMoney(b) }))}
               />
-              <p className="mt-2 text-[13px] text-[#bfb49a]">
+              <p className={`${MOBILE ? 'mt-1 text-[11px]' : 'mt-2 text-[13px]'} text-[#bfb49a]`}>
                 Blinds <b className="text-[#f6e6b4]">{formatMoney(sb)} / {formatMoney(bb)}</b> · 100 big blinds for everyone at the table
               </p>
             </fieldset>
 
-            <fieldset className="mt-5">
-              <legend className="mb-2 text-[13px] font-semibold text-[#e9dcb8]">Opponents</legend>
+            <fieldset className={MOBILE ? 'mt-2' : 'mt-5'}>
+              <legend className={`${MOBILE ? 'mb-1 text-[12px]' : 'mb-2 text-[13px]'} font-semibold text-[#e9dcb8]`}>Opponents</legend>
               <Segmented label="Opponents" value={opponents} onChange={setOpponents} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: n }))} />
             </fieldset>
 
-            <fieldset className="mt-5">
-              <legend className="mb-2 text-[13px] font-semibold text-[#e9dcb8]">Opponent skill</legend>
+            <fieldset className={MOBILE ? 'mt-2' : 'mt-5'}>
+              <legend className={`${MOBILE ? 'mb-1 text-[12px]' : 'mb-2 text-[13px]'} font-semibold text-[#e9dcb8]`}>Opponent skill</legend>
               <Segmented
                 label="Opponent skill"
                 value={difficulty}
@@ -119,8 +122,8 @@ export function Lobby() {
 
             <Button
               variant="gold"
-              size="lg"
-              className="mt-7 w-full font-serif text-xl"
+              size={MOBILE ? 'md' : 'lg'}
+              className={`${MOBILE ? 'mt-3' : 'mt-7'} w-full font-serif text-xl`}
               disabled={!affordable}
               onClick={() => {
                 initAudio()
@@ -135,10 +138,10 @@ export function Lobby() {
                 Your bankroll is empty — reset it in Settings to play again.
               </p>
             )}
-            <p className="mt-5 text-center text-[12px] text-[#9d937c]">
+            {!MOBILE && <p className="mt-5 text-center text-[12px] text-[#9d937c]">
               Shortcuts at the table: <kbd className="text-[#d4af5a]">F</kbd> fold · <kbd className="text-[#d4af5a]">C</kbd> check/call ·{' '}
               <kbd className="text-[#d4af5a]">R</kbd> raise · <kbd className="text-[#d4af5a]">Enter</kbd> confirm
-            </p>
+            </p>}
           </div>
         </section>
       </div>

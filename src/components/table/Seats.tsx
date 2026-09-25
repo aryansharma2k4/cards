@@ -1,3 +1,4 @@
+import { MOBILE } from '../../ui/device'
 import { memo } from 'react'
 import { useGame, type SeatView } from '../../game/store'
 import { formatMoney } from '../../engine/chips'
@@ -97,12 +98,12 @@ const Seat = memo(function Seat({ seat, v, isHero }: { seat: number; v: SeatView
           </div>
         )}
         <div
-          className={`relative z-10 min-w-[140px] rounded-xl border px-3 py-1 text-center shadow-[0_8px_20px_-6px_rgba(0,0,0,.9)] ${
+          className={`relative z-10 ${MOBILE ? 'min-w-[190px]' : 'min-w-[140px]'} rounded-xl border px-3 py-1 text-center shadow-[0_8px_20px_-6px_rgba(0,0,0,.9)] ${
             isHero ? '' : '-mt-3'
           } ${v.winner ? 'border-[#f3dc9a] bg-[linear-gradient(180deg,#3a2a10,#1a1206)]' : 'border-[#d4af5a]/45 bg-[linear-gradient(180deg,#1b1511,#0c0907)]'} ${dim ? 'opacity-60' : ''}`}
         >
-          <div className="truncate text-[15px] font-semibold tracking-wide text-[#e9dcb8]">{v.name}</div>
-          <div className="font-serif text-[22px] font-bold tabular-nums leading-tight text-[#f6e6b4]">
+          <div className={`truncate ${MOBILE ? 'text-[22px]' : 'text-[15px]'} font-semibold tracking-wide text-[#e9dcb8]`}>{v.name}</div>
+          <div className={`font-serif ${MOBILE ? 'text-[32px]' : 'text-[22px]'} font-bold tabular-nums leading-tight text-[#f6e6b4]`}>
             {v.allIn && v.stack === 0 ? 'ALL-IN' : formatMoney(v.stack)}
           </div>
         </div>
@@ -110,7 +111,7 @@ const Seat = memo(function Seat({ seat, v, isHero }: { seat: number; v: SeatView
       {v.status && (
         <div
           key={v.status}
-          className={`absolute left-0 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-0.5 text-[13px] font-bold uppercase tracking-wider ring-1 ${statusStyle(v.status)}`}
+          className={`absolute left-0 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-0.5 ${MOBILE ? 'text-[19px]' : 'text-[13px]'} font-bold uppercase tracking-wider ring-1 ${statusStyle(v.status)}`}
           style={{ top: isHero ? -64 : -96, animation: 'pop-in .22s ease-out', zIndex: 30 }}
         >
           {v.status}
@@ -143,8 +144,8 @@ function HoleCards({ seat, v, isHero }: { seat: number; v: SeatView; isHero: boo
       })}
       {v.handLabel && v.cards.length > 0 && (
         <div
-          className="absolute -translate-x-1/2 whitespace-nowrap rounded-md bg-black/75 px-2 py-0.5 text-[14px] font-semibold text-[#f6e6b4] ring-1 ring-[#d4af5a]/40"
-          style={{ ...at(holeCardPos(seat, 0).x + (isHero ? 54 : 13), holeCardPos(seat, 0).y + (w * 1.4) / 2 + 4), zIndex: 26, animation: 'pop-in .25s ease-out' }}
+          className={`absolute -translate-x-1/2 whitespace-nowrap rounded-md bg-black/75 px-2 py-0.5 ${MOBILE ? 'text-[20px]' : 'text-[14px]'} font-semibold text-[#f6e6b4] ring-1 ring-[#d4af5a]/40`}
+          style={{ ...at((holeCardPos(seat, 0).x + holeCardPos(seat, 1).x) / 2, holeCardPos(seat, 0).y + (w * 1.4) / 2 + 4), zIndex: 26, animation: 'pop-in .25s ease-out' }}
         >
           {v.handLabel}
         </div>
@@ -256,8 +257,8 @@ export function Banner() {
       style={{ animation: 'banner-in .45s cubic-bezier(.2,.9,.3,1.2) forwards' }}
       role="status"
     >
-      <div className="gold-text font-serif text-[28px] font-bold leading-tight">{banner.title}</div>
-      {banner.detail && <div className="mt-0.5 text-[15px] font-semibold text-[#efe6cf]">{banner.detail}</div>}
+      <div className={`gold-text font-serif ${MOBILE ? 'text-[40px]' : 'text-[28px]'} font-bold leading-tight`}>{banner.title}</div>
+      {banner.detail && <div className={`mt-0.5 ${MOBILE ? 'text-[22px]' : 'text-[15px]'} font-semibold text-[#efe6cf]`}>{banner.detail}</div>}
     </div>
   )
 }

@@ -1,5 +1,11 @@
-/** Everything on the table lives in one fixed stage coordinate system that is scaled to fit the screen. */
-export const STAGE = { w: 1600, h: 1040 }
+import { MOBILE } from './device'
+
+/**
+ * Everything on the table lives in one fixed stage coordinate system that is scaled to fit the screen.
+ * On phones the rack and action bar move to a side panel, so the stage is just the table (and the
+ * cards are drawn bigger).
+ */
+export const STAGE = { w: 1600, h: MOBILE ? 872 : 1040 }
 export const CENTER = { x: 800, y: 440 }
 
 export const FELT = { x: 190, y: 170, w: 1220, h: 560 }
@@ -9,7 +15,7 @@ export type Pt = { x: number; y: number }
 
 /** Engine seat index → avatar position. Seat 0 is the hero, then clockwise. */
 export const SEATS: Pt[] = [
-  { x: 800, y: 800 }, // hero, bottom centre
+  { x: 800, y: MOBILE ? 826 : 800 }, // hero, bottom centre
   { x: 400, y: 752 }, // bottom-left
   { x: 138, y: 400 }, // left end
   { x: 470, y: 108 }, // top-left
@@ -33,14 +39,14 @@ const lerp = (a: Pt, b: Pt, t: number): Pt => ({ x: a.x + (b.x - a.x) * t, y: a.
 
 /** Where a seat's bet sits on the felt. */
 export const betSpot = (seat: number): Pt =>
-  seat === HERO ? { x: 800, y: 568 } : lerp(SEATS[seat], CENTER, seat === 2 || seat === 5 ? 0.33 : 0.4)
+  seat === HERO ? { x: 800, y: MOBILE ? 548 : 568 } : lerp(SEATS[seat], CENTER, seat === 2 || seat === 5 ? 0.33 : 0.4)
 
 /** Opponent hole cards: just inside the rail, toward the middle. */
 export const cardSpot = (seat: number): Pt => (seat === HERO ? HERO_CARDS : lerp(SEATS[seat], CENTER, 0.2))
 
 /** Dealer button sits beside the bet spot. */
 export const buttonSpot = (seat: number): Pt => {
-  if (seat === HERO) return { x: 668, y: 640 }
+  if (seat === HERO) return { x: MOBILE ? 640 : 668, y: 640 }
   const b = betSpot(seat)
   const s = SEATS[seat]
   const dx = CENTER.x - s.x
@@ -49,12 +55,12 @@ export const buttonSpot = (seat: number): Pt => {
   return { x: b.x - (dy / len) * 62, y: b.y + (dx / len) * 62 }
 }
 
-export const HERO_CARDS: Pt = { x: 800, y: 664 }
-export const CARD = { w: 80, h: 112 }
-export const HERO_CARD = { w: 100, h: 140 }
-export const OPP_CARD = { w: 50, h: 70 }
+export const HERO_CARDS: Pt = { x: 800, y: MOBILE ? 672 : 664 }
+export const CARD = MOBILE ? { w: 98, h: 137 } : { w: 80, h: 112 }
+export const HERO_CARD = MOBILE ? { w: 124, h: 174 } : { w: 100, h: 140 }
+export const OPP_CARD = MOBILE ? { w: 60, h: 84 } : { w: 50, h: 70 }
 
-export const boardSlot = (i: number): Pt => ({ x: CENTER.x + (i - 2) * 92, y: CENTER.y })
+export const boardSlot = (i: number): Pt => ({ x: CENTER.x + (i - 2) * (CARD.w + 12), y: CENTER.y })
 export const POT: Pt = { x: 800, y: 322 }
 export const DEALER: Pt = { x: 800, y: 52 }
 export const DECK: Pt = { x: 800, y: 208 }
@@ -71,9 +77,11 @@ export const rackStack = (i: number, n: number): Pt => {
 /** Centre + tilt of a seat's i-th hole card. */
 export function holeCardPos(seat: number, i: number): Pt & { rot: number } {
   const c = cardSpot(seat)
-  if (seat === HERO) return { x: c.x + (i ? 54 : -54), y: c.y, rot: i ? 3 : -3 }
-  return { x: c.x + (i ? 13 : -13), y: c.y, rot: i ? 8 : -8 }
+  const hx = HERO_CARD.w * 0.54
+  const ox = OPP_CARD.w * 0.26
+  if (seat === HERO) return { x: c.x + (i ? hx : -hx), y: c.y, rot: i ? 3 : -3 }
+  return { x: c.x + (i ? ox : -ox), y: c.y, rot: i ? 8 : -8 }
 }
 
 /** Where the hero's bet-in-progress pile sits. */
-export const PILE: Pt = { x: 968, y: 650 }
+export const PILE: Pt = { x: MOBILE ? 1010 : 968, y: 650 }
