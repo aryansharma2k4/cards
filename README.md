@@ -1,6 +1,6 @@
 # cards
 
-No-Limit Texas Hold'em against up to five AI opponents at a luxury casino table. It runs entirely in the browser.
+A private casino in the browser (and on Android): No-Limit Texas Hold'em against up to five AI opponents, blackjack, and European roulette, all sharing one bankroll.
 
 ```sh
 npm install
@@ -17,6 +17,9 @@ npm run build    # typecheck + production build
 - **Keys:** `F` fold · `C` check/call · `R` focus the raise slider · `Enter` confirm · `Esc` clear the pile.
 - **Color up** (bottom right) swaps small chips for bigger ones. It lights up when your rack gets crowded.
 - Leaving the table returns your stack to the bankroll. So does closing the page.
+- **Lobby:** swipe (or use the arrows) between Hold'em, Blackjack and Roulette, pick a buy-in with the slider, and enter the table.
+- **Blackjack:** six-deck shoe (reshuffled at 75%), dealer peeks and stands on all 17s, blackjack pays 3:2, insurance 2:1, double on any two cards (also after a split), split up to four hands, split aces get one card. Tap chips to bet; keys `H` hit, `S` stand, `D` double, `P` split, `Enter` deal. Limits $5–$5,000.
+- **Roulette:** European single zero with every bet on the layout: straights, splits, streets, corners, six-lines, dozens, columns and even-money bets. The winning number comes from the platform's cryptographic RNG; the ball's path (rim, deflectors, fret hops) is then planned so it physically lands in that pocket. Limits $1–$5,000 per spot.
 
 ## Android app
 
@@ -33,9 +36,9 @@ Release builds are signed with the key at `~/.android/cards-release.jks`, with i
 
 ## Stats, saving and sync
 
-- **Saved on this device:** your bankroll (including chips on the table, so a refresh or a crash never loses them), settings, and every hand you play.
-- **Stats** (Lobby → Stats): net-worth graph, profit by session and by position, win rate in big blinds per 100 hands, VPIP/PFR, showdown numbers, and a list of hands. Click a hand to see it street by street, with each of your decisions judged against the pot odds.
-- **Cloud sync** (Settings → Cloud sync, or the prompt in the lobby): sign in once per device with email and password; after that your money syncs automatically whenever it changes, when the app comes back to the foreground, and every minute. Your balance, sessions and hands sync to Postgres on [Neon](https://neon.com) in Singapore. On a new device, sign in and it pulls everything down. For the balance, the most recent change wins.
+- **Saved on this device:** your bankroll (including chips on the table, so a refresh or a crash never loses them), settings, and every hand and round you play. On Android the balance is also mirrored to SharedPreferences, because the WebView writes `localStorage` to disk seconds late and a round finished just before the app was swiped away could otherwise be lost.
+- **Stats** (Lobby → Stats): tabs for each game. Blackjack and roulette show net result, rounds won, total wagered, a net-worth graph and every round. Hold'em shows a net-worth graph, profit by session and by position, win rate in big blinds per 100 hands, VPIP/PFR, showdown numbers, and a list of hands. Click a hand to see it street by street, with each of your decisions judged against the pot odds.
+- **Cloud sync** (Settings → Cloud sync, or the prompt in the lobby): sign in once per device with email and password; after that everything syncs automatically: when the app opens, when you leave a table, after each hand or round, when the app goes to the background, and every minute. There is no sync button. Your balance, sessions, poker hands and blackjack/roulette rounds sync to Postgres on [Neon](https://neon.com) in Singapore. On a new device, sign in and it pulls everything down. For the balance, the most recent change wins.
 
 ### Sync backend (for the phone app too)
 

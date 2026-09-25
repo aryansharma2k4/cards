@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { durable } from './durable'
 import type { LegalActions } from '../engine/engine'
 import type { HandInfo } from '../engine/evaluate'
 import type { Rack } from '../engine/chips'
@@ -151,6 +152,10 @@ export const useGame = create<State>()(
     }),
     {
       name: 'cards:v1',
+      storage: createJSONStorage(() => {
+        if (typeof localStorage === 'undefined') throw new Error('no storage') // tests: persist turns itself off
+        return durable
+      }),
       partialize: (s) => ({ bankroll: s.bankroll, balanceAt: s.balanceAt, seated: s.seated, settings: s.settings }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>
