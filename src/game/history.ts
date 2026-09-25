@@ -42,13 +42,13 @@ export interface HandRecord {
   worth: number
 }
 
-export type GameKind = 'poker' | 'blackjack' | 'roulette'
+export type GameKind = 'poker' | 'blackjack' | 'roulette' | 'slots'
 
-/** One blackjack round or roulette spin. */
+/** One blackjack round, roulette spin or slot spin. */
 export interface RoundRecord {
   id: string
   sessionId: string
-  game: 'blackjack' | 'roulette'
+  game: Exclude<GameKind, 'poker'>
   ts: number
   /** Total staked this round. */
   bet: number
@@ -230,7 +230,7 @@ export class Recorder {
 
 // ---- blackjack / roulette sessions ----
 
-export function startCasinoSession(game: 'blackjack' | 'roulette', buyIn: number): string {
+export function startCasinoSession(game: Exclude<GameKind, 'poker'>, buyIn: number): string {
   const s: SessionRecord = { id: crypto.randomUUID(), game, start: Date.now(), end: null, buyIn, sb: 0, bb: 0, opponents: 0, difficulty: 'hard', invested: buyIn, cashOut: null, hands: 0 }
   upsertSession(s)
   return s.id

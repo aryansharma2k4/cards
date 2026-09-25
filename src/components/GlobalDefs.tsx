@@ -1,9 +1,11 @@
 import { CardDefs } from './cards/art'
 import { ChipDefs } from './chips/Chip'
+import { SlotDefs } from '../games/slots/Symbols'
 
 /** Shared gradients, filters and symbols referenced by every card/chip SVG on the page. */
 export function GlobalDefs() {
   return (
+    <>
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
       <defs>
         <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -22,5 +24,7 @@ export function GlobalDefs() {
         <ChipDefs />
       </defs>
     </svg>
+    <SlotDefs />
+    </>
   )
 }

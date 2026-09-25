@@ -157,3 +157,14 @@ body {
 
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Slot machine: chasing marquee bulbs, win highlights */
+@keyframes bulb {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+.bulb-a { animation: bulb 1s infinite; }
+.bulb-b { animation: bulb 1s infinite 0.5s; }
+.slots-fast .bulb-a { animation-duration: 0.3s; }
+.slots-fast .bulb-b { animation-duration: 0.3s; animation-delay: 0.15s; }
+.win-cell, .candle-glow { animation: glow-pulse 0.9s ease-in-out infinite; }

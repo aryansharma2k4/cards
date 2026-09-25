@@ -1,6 +1,6 @@
 # cards
 
-A private casino in the browser (and on Android): No-Limit Texas Hold'em against up to five AI opponents, blackjack, and European roulette, all sharing one bankroll.
+A private casino in the browser (and on Android): No-Limit Texas Hold'em against up to five AI opponents, blackjack, European roulette and a Lucky 7s slot machine, all sharing one bankroll.
 
 ```sh
 npm install
@@ -20,6 +20,7 @@ npm run build    # typecheck + production build
 - **Lobby:** swipe (or use the arrows) between Hold'em, Blackjack and Roulette, pick a buy-in with the slider, and enter the table.
 - **Blackjack:** six-deck shoe (reshuffled at 75%), dealer peeks and stands on all 17s, blackjack pays 3:2, insurance 2:1, double on any two cards (also after a split), split up to four hands, split aces get one card. Tap chips to bet; keys `H` hit, `S` stand, `D` double, `P` split, `Enter` deal. Limits $5–$5,000.
 - **Roulette:** European single zero with every bet on the layout: straights, splits, streets, corners, six-lines, dozens, columns and even-money bets. The winning number comes from the platform's cryptographic RNG; the ball's path (rim, deflectors, fret hops) is then planned so it physically lands in that pocket. Limits $1–$5,000 per spot.
+- **Slots:** a five-reel, three-row machine with 10 fixed paylines, paying left to right (cherries from two). Reel stops come from the cryptographic RNG; the return to player is exactly 95.7% (computed in `rtp()` and pinned by the tests), with about 30% of spins paying something. Five 7s on a line pays 5,000× the line bet. Pull the lever or press Space; ↑/↓ change the bet. Limits $10–$5,000 per spin.
 
 ## Android app
 

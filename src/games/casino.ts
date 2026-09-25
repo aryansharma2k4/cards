@@ -1,10 +1,11 @@
 import { get, set, type CasinoGame } from '../game/store'
 import { endCasinoSession, recordRound, startCasinoSession } from '../game/history'
 
-/** Table limits (per round for blackjack, per spot for roulette). */
+/** Table limits (per round for blackjack, per spot for roulette, per spin for slots). */
 export const LIMITS: Record<CasinoGame, { min: number; max: number }> = {
   blackjack: { min: 5, max: 5_000 },
   roulette: { min: 1, max: 5_000 },
+  slots: { min: 10, max: 5_000 },
 }
 
 let sessionId = ''

@@ -5,6 +5,7 @@ import { Lobby } from './screens/Lobby'
 import { TableScreen } from './screens/TableScreen'
 import { Stats } from './screens/Stats'
 import { RouletteScreen } from './games/roulette/RouletteScreen'
+import { SlotsScreen } from './games/slots/SlotsScreen'
 import { BlackjackScreen } from './games/blackjack/BlackjackScreen'
 import { busy } from './games/casino'
 import { useGame } from './game/store'
@@ -40,7 +41,7 @@ export default function App() {
       if (open) return void open.dispatchEvent(new Event('cancel', { cancelable: true }))
       if (s.screen === 'table' && s.settings.panelOpen) return set({ settings: { ...s.settings, panelOpen: false } })
       if (s.screen === 'table') return set({ dialog: 'leave' })
-      if (s.screen === 'blackjack' || s.screen === 'roulette') return void (busy || set({ dialog: 'leave' }))
+      if (s.screen === 'blackjack' || s.screen === 'roulette' || s.screen === 'slots') return void (busy || set({ dialog: 'leave' }))
       if (s.screen === 'stats') return set({ screen: 'lobby' })
       void NativeApp.exitApp()
     })
@@ -54,6 +55,8 @@ export default function App() {
         <Lobby />
       ) : screen === 'stats' ? (
         <Stats />
+      ) : screen === 'slots' ? (
+        <SlotsScreen />
       ) : screen === 'roulette' ? (
         <RouletteScreen />
       ) : screen === 'blackjack' ? (

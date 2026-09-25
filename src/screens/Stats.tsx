@@ -194,6 +194,7 @@ export function Stats() {
               { value: 'poker', label: "Hold'em" },
               { value: 'blackjack', label: 'Blackjack' },
               { value: 'roulette', label: 'Roulette' },
+              { value: 'slots', label: 'Slots' },
             ]}
           />
           <div className={`ml-auto flex flex-wrap items-center gap-2 ${tab === 'poker' ? '' : 'hidden'}`}>
@@ -364,7 +365,7 @@ export function Stats() {
   )
 }
 
-const GAME_NAME: Record<GameKind, string> = { poker: "Hold'em", blackjack: 'Blackjack', roulette: 'Roulette' }
+const GAME_NAME: Record<GameKind, string> = { poker: "Hold'em", blackjack: 'Blackjack', roulette: 'Roulette', slots: 'Slots' }
 
 /** Blackjack / roulette: results per round. */
 function CasinoStats({ game }: { game: Exclude<GameKind, 'poker'> }) {
@@ -414,7 +415,7 @@ function CasinoStats({ game }: { game: Exclude<GameKind, 'poker'> }) {
               <tr>
                 <th className="py-2 font-semibold">When</th>
                 <th className="font-semibold">Bet</th>
-                <th className="font-semibold">{game === 'roulette' ? 'Number' : 'Hands'}</th>
+                <th className="font-semibold">{game === 'roulette' ? 'Number' : game === 'slots' ? 'Wins' : 'Hands'}</th>
                 <th className="text-right font-semibold">Result</th>
               </tr>
             </thead>

@@ -7,7 +7,7 @@ import type { Rack } from '../engine/chips'
 import type { Difficulty, Personality } from '../ai/bot'
 import type { Pt } from '../ui/geometry'
 
-export type CasinoGame = 'blackjack' | 'roulette'
+export type CasinoGame = 'blackjack' | 'roulette' | 'slots'
 
 export const START_BANKROLL = 10_000
 export const BUY_INS = [100, 500, 1_000, 2_500, 5_000, 10_000]
@@ -77,8 +77,8 @@ export interface Settings {
 }
 
 interface State {
-  screen: 'lobby' | 'table' | 'stats' | 'blackjack' | 'roulette'
-  /** Blackjack/roulette table you're sitting at, and the chips in front of you there. */
+  screen: 'lobby' | 'table' | 'stats' | CasinoGame
+  /** Casino game (blackjack, roulette, slots) you're sitting at, and the chips in front of you there. */
   casino: { game: CasinoGame; stack: number; buyIn: number } | null
   bankroll: number
   /** When your balance (bankroll + table chips) last changed, ms. 0 = never touched on this device. Cloud sync uses it. */

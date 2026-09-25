@@ -9,6 +9,7 @@ import { Chip } from '../components/chips/Chip'
 import { initAudio, play } from '../audio/sound'
 import { CloudBadge, SyncPrompt } from '../components/CloudSync'
 import { Wheel } from '../games/roulette/Wheel'
+import { SymbolIcon } from '../games/slots/Symbols'
 import { LIMITS, enterCasino } from '../games/casino'
 import type { CasinoGame } from '../game/store'
 
@@ -47,6 +48,7 @@ const GAMES: { id: GameId; name: string; kicker: string; blurb: string }[] = [
   { id: 'poker', name: "Texas Hold'em", kicker: 'No-limit poker', blurb: 'Five sharp opponents, 100 big blinds each.' },
   { id: 'blackjack', name: 'Blackjack', kicker: 'Six-deck shoe', blurb: 'Pays 3 to 2 · dealer stands on all 17s.' },
   { id: 'roulette', name: 'Roulette', kicker: 'European single zero', blurb: 'Every bet on the layout, a real ball on the wheel.' },
+  { id: 'slots', name: 'Slots', kicker: 'Lucky 7s · 5 reels', blurb: '10 lines, pays up to 5,000× your line bet.' },
 ]
 
 /** Round to two significant figures so slider amounts read like chip counts. */
@@ -68,6 +70,16 @@ function Art({ id }: { id: GameId }) {
         <div className="animate-[spin_24s_linear_infinite] drop-shadow-[0_10px_16px_rgba(0,0,0,.6)]">
           <Wheel size={MOBILE ? 96 : 150} />
         </div>
+      </div>
+    )
+  if (id === 'slots')
+    return (
+      <div className={`${box} relative shrink-0`} aria-hidden>
+        {(['cherry', 'seven', 'bell'] as const).map((s, i) => (
+          <div key={s} className="absolute top-1/2 grid place-items-center rounded-lg bg-[linear-gradient(180deg,#8d949c,#fff_50%,#8d949c)] ring-2 ring-[#d9a53c]" style={{ left: `${8 + i * 30}%`, width: '30%', height: '70%', transform: 'translateY(-50%)' }}>
+            <SymbolIcon sym={s} size={MOBILE ? 30 : 48} />
+          </div>
+        ))}
       </div>
     )
   const cards = id === 'poker' ? ['As', 'Ah'] : ['Ks', 'Ah']
@@ -123,7 +135,7 @@ export function Lobby() {
           <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.35em] text-[#d4af5a]/80">Private casino</p>
           <h1 className={`gold-text font-display font-bold leading-[0.9] ${MOBILE ? 'text-[72px]' : 'text-[88px] sm:text-[120px]'}`}>cards</h1>
           <p className={MOBILE ? 'mt-2 text-[13px] leading-snug text-[#d8ccb0]' : 'mx-auto mt-4 max-w-md text-[17px] leading-relaxed text-[#d8ccb0] lg:mx-0'}>
-            Hold'em against ruthless opponents, blackjack from a six-deck shoe and a real roulette wheel. One bankroll for all of it.
+            Hold'em against ruthless opponents, blackjack from a six-deck shoe, a real roulette wheel and a Lucky 7s slot machine. One bankroll for all of it.
           </p>
           {!MOBILE && (
             <div className="mt-8">
@@ -217,7 +229,7 @@ export function Lobby() {
                 ) : (
                   <>
                     Table limits <b className="text-[#f6e6b4]">{formatMoney(LIMITS[g.id as CasinoGame].min)} – {formatMoney(LIMITS[g.id as CasinoGame].max)}</b>
-                    {g.id === 'roulette' ? ' per spot' : ' per hand'}
+                    {g.id === 'roulette' ? ' per spot' : g.id === 'slots' ? ' per spin' : ' per hand'}
                   </>
                 )}
               </p>
