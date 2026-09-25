@@ -112,22 +112,31 @@ export interface WheelHandle {
   set(wheel: number, ball: number, r: number, ballVisible?: boolean): void
 }
 
-/** Roulette wheel, 600×600 units centred on (0,0). Driven imperatively for 60fps. */
+const VIEW = '-310 -310 620 620'
+const layer = 'absolute inset-0'
+
+/**
+ * Roulette wheel, 620×620 units centred on (0,0). Three layers so a spin never repaints the artwork:
+ * the static bowl, the rotor (turned with a GPU transform) and the ball (moved with a GPU transform).
+ */
 export const Wheel = forwardRef<WheelHandle, { size: number }>(function Wheel({ size }, ref) {
-  const rotor = useRef<SVGGElement>(null)
-  const ball = useRef<SVGGElement>(null)
+  const rotor = useRef<HTMLDivElement>(null)
+  const ball = useRef<HTMLDivElement>(null)
+  const k = size / 620 // wheel units → px
   useImperativeHandle(ref, () => ({
     set(w, b, r, visible = true) {
-      rotor.current?.setAttribute('transform', `rotate(${(w * 180) / Math.PI})`)
-      const [x, y] = P(r, b)
+      if (rotor.current) rotor.current.style.transform = `rotate(${(w * 180) / Math.PI}deg)`
+      const [x, y] = P(r * k, b)
       if (ball.current) {
-        ball.current.setAttribute('transform', `translate(${fx(x)} ${fx(y)})`)
+        ball.current.style.transform = `translate(${fx(x)}px, ${fx(y)}px)`
         ball.current.style.opacity = visible ? '1' : '0'
       }
     },
   }))
+  const ballPx = 22 * k
   return (
-    <svg width={size} height={size} viewBox="-310 -310 620 620" aria-label="Roulette wheel" role="img">
+    <div className="relative" style={{ width: size, height: size }} aria-label="Roulette wheel" role="img">
+      <svg className={layer} width={size} height={size} viewBox={VIEW} aria-hidden>
       <defs>
         <radialGradient id="bowl-wood" cx="0.45" cy="0.4" r="0.7">
           <stop offset="0" stopColor="#7a3a1a" />
@@ -175,23 +184,30 @@ export const Wheel = forwardRef<WheelHandle, { size: number }>(function Wheel({ 
           <stop offset="0.55" stopColor="#e9ebee" />
           <stop offset="1" stopColor="#8a8f97" />
         </radialGradient>
+        <radialGradient id="wheel-light" cx="0.4" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.14" />
+          <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.25" />
+        </radialGradient>
       </defs>
-      <Bowl />
-      <g ref={rotor}>
-        <Rotor />
-      </g>
+        <Bowl />
+      </svg>
+      <div ref={rotor} className={layer} style={{ willChange: 'transform' }}>
+        <svg width={size} height={size} viewBox={VIEW} aria-hidden>
+          <Rotor />
+        </svg>
+      </div>
       {/* soft light from above */}
-      <circle r="300" fill="url(#wheel-light)" pointerEvents="none" />
-      <radialGradient id="wheel-light" cx="0.4" cy="0.3" r="0.8">
-        <stop offset="0" stopColor="#fff" stopOpacity="0.14" />
-        <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
-        <stop offset="1" stopColor="#000" stopOpacity="0.25" />
-      </radialGradient>
-      <g ref={ball} style={{ opacity: 0 }}>
-        <ellipse cx="3" cy="4" rx="9" ry="8" fill="rgba(0,0,0,.45)" />
-        <circle r="8.5" fill="url(#ball-shade)" />
-        <circle cx="-3" cy="-3.2" r="2.6" fill="#fff" opacity="0.9" />
-      </g>
-    </svg>
+      <svg className={`${layer} pointer-events-none`} width={size} height={size} viewBox={VIEW} aria-hidden>
+        <circle r="300" fill="url(#wheel-light)" />
+      </svg>
+      <div className="absolute" style={{ left: size / 2 - ballPx / 2, top: size / 2 - ballPx / 2, width: ballPx, height: ballPx, opacity: 0, willChange: 'transform' }} ref={ball}>
+        <svg width={ballPx} height={ballPx} viewBox="-11 -11 22 22" style={{ overflow: 'visible' }} aria-hidden>
+          <ellipse cx="3" cy="4" rx="9" ry="8" fill="rgba(0,0,0,.45)" />
+          <circle r="8.5" fill="url(#ball-shade)" />
+          <circle cx="-3" cy="-3.2" r="2.6" fill="#fff" opacity="0.9" />
+        </svg>
+      </div>
+    </div>
   )
 })

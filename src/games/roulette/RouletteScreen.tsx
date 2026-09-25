@@ -212,9 +212,10 @@ export function RouletteScreen() {
             transform: `translate(${pos.x - WHEEL_SIZE / 2}px, ${pos.y - WHEEL_SIZE / 2}px) scale(${pos.s})`,
             transition: 'transform 650ms cubic-bezier(.3,.8,.25,1)',
             zIndex: 25,
-            filter: 'drop-shadow(0 30px 40px rgba(0,0,0,.6))',
+            willChange: 'transform',
           }}
         >
+          <div className="absolute rounded-full" style={{ inset: 8, top: 30, bottom: -14, background: 'rgba(0,0,0,.55)', filter: 'blur(18px)' }} />
           <Wheel ref={wheel} size={WHEEL_SIZE} />
         </div>
 
