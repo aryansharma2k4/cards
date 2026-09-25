@@ -163,8 +163,9 @@ body {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0.25; }
 }
-.bulb-a { animation: bulb 1s infinite; }
-.bulb-b { animation: bulb 1s infinite 0.5s; }
-.slots-fast .bulb-a { animation-duration: 0.3s; }
-.slots-fast .bulb-b { animation-duration: 0.3s; animation-delay: 0.15s; }
+/* two layers of bulbs flash in turn: opacity on whole layers stays on the compositor */
+.bulbs-a { animation: bulb 1s infinite; will-change: opacity; }
+.bulbs-b { animation: bulb 1s infinite 0.5s; will-change: opacity; }
+.slots-fast .bulbs-a { animation-duration: 0.3s; }
+.slots-fast .bulbs-b { animation-duration: 0.3s; animation-delay: 0.15s; }
 .win-cell, .candle-glow { animation: glow-pulse 0.9s ease-in-out infinite; }

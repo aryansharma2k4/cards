@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, memo, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Stage } from '../../components/table/Stage'
 import { useGame } from '../../game/store'
 import { formatMoney } from '../../engine/chips'
@@ -26,6 +26,9 @@ const RY = TOP.y + TOP.h + (MOBILE ? 38 : 42)
 const METER_Y = RY + ROWS * CH + (MOBILE ? 22 : 30)
 const DECK_Y = METER_Y + (MOBILE ? 60 : 68)
 const reelX = (r: number) => RX + r * (CW + GAP)
+/** Bounds of the separately-painted layers (reel window with line tabs; marquee bulbs). */
+const REEL_BOX = { x: RX - 26, y: RY - 8, w: REEL_W + 52, h: ROWS * CH + 16 }
+const MARQ_BOX = { x: CAB.x + 40, y: MARQ.y, w: CAB.w - 80, h: MARQ.h }
 
 const LINE_BETS = [1, 2, 5, 10, 25, 50, 100, 250, 500]
 const LINE_COLORS = ['#ffd84a', '#ff5a5a', '#4ade80', '#5ab4ff', '#ff8af0', '#ffa94a', '#a78bfa', '#2ee6d6', '#f472b6', '#c3f25a']
@@ -36,16 +39,21 @@ const mod = (a: number, m: number) => ((a % m) + m) % m
 
 interface ReelHandle {
   pos: number[]
-  els: (SVGGElement | null)[][]
-  groups: (SVGGElement | null)[]
-  blur: (SVGFEGaussianBlurElement | null)[]
+  cols: (HTMLDivElement | null)[]
+  blurred: boolean[]
 }
 
-function drawReel(h: ReelHandle, r: number) {
-  const p = h.pos[r]
-  const base = Math.floor(p)
-  h.groups[r]?.setAttribute('transform', `translate(0 ${(-(p - base) * CH).toFixed(2)})`)
-  h.els[r].forEach((el, k) => el?.setAttribute('href', symHref(STRIPS[r][mod(base + k, L)])))
+/** Slide a reel's strip so row 0 shows strip index `pos` (the strip repeats its first rows at the end). */
+function drawReel(h: ReelHandle, r: number, speed = 0) {
+  const el = h.cols[r]
+  if (!el) return
+  el.style.transform = `translate3d(0, ${(-mod(h.pos[r], L) * CH).toFixed(1)}px, 0)`
+  // motion blur while the reel is really moving; toggled rarely so it stays on the GPU
+  const blur = speed > 8
+  if (blur !== h.blurred[r]) {
+    h.blurred[r] = blur
+    el.style.filter = blur ? 'blur(1.6px)' : ''
+  }
 }
 
 /** Plan of one reel's spin: a small kick up, a fast roll down, a stop with a little bounce. */
@@ -78,18 +86,25 @@ function reelMotion(p0: number, stop: number, reel: number) {
 
 // ---- static artwork ----
 
-function Bulbs({ x, y, w, h, gap = 22 }: { x: number; y: number; w: number; h: number; gap?: number }) {
+/** Marquee bulbs, one parity at a time; each parity is its own layer and the two layers flash in turn. */
+const Bulbs = memo(function Bulbs({ parity }: { parity: 0 | 1 }) {
+  const [x, y, w, h, gap] = [CAB.x + 48, MARQ.y + 5, CAB.w - 96, MARQ.h - 10, 22]
   const pts: [number, number][] = []
   for (let i = 0; i <= w / gap; i++) pts.push([x + i * gap, y], [x + i * gap, y + h])
   for (let j = 1; j < h / gap; j++) pts.push([x, y + j * gap], [x + w, y + j * gap])
   return (
-    <g>
-      {pts.map(([bx, by], i) => (
-        <circle key={i} cx={bx} cy={by} r="5" className={i % 2 ? 'bulb-a' : 'bulb-b'} fill="#fff6c8" stroke="#b88a2a" strokeWidth="1.5" />
-      ))}
-    </g>
+    <svg
+      className={`absolute ${parity ? 'bulbs-a' : 'bulbs-b'}`}
+      style={{ left: MARQ_BOX.x, top: MARQ_BOX.y }}
+      width={MARQ_BOX.w}
+      height={MARQ_BOX.h}
+      viewBox={`${MARQ_BOX.x} ${MARQ_BOX.y} ${MARQ_BOX.w} ${MARQ_BOX.h}`}
+      aria-hidden
+    >
+      {pts.map(([bx, by], i) => i % 2 === parity && <circle key={i} cx={bx} cy={by} r="5" fill="#fff6c8" stroke="#b88a2a" strokeWidth="1.5" />)}
+    </svg>
   )
-}
+})
 
 function Cabinet() {
   const bodyH = H - BODY_Y - 6
@@ -149,7 +164,6 @@ function Cabinet() {
       {/* marquee */}
       <rect x={CAB.x + 30} y={MARQ.y} width={CAB.w - 60} height={MARQ.h} rx="22" fill="url(#cab-gold)" />
       <rect x={CAB.x + 40} y={MARQ.y + 10} width={CAB.w - 80} height={MARQ.h - 20} rx="16" fill="url(#cab-marq)" />
-      <Bulbs x={CAB.x + 48} y={MARQ.y + 5} w={CAB.w - 96} h={MARQ.h - 10} />
       <g fontFamily="var(--font-display)" fontWeight="900" fontSize={MOBILE ? 62 : 76} textAnchor="middle" letterSpacing="4">
         <text x={CX} y={MARQ.y + MARQ.h / 2 + (MOBILE ? 22 : 27)} fill="#5a3408" transform="translate(3 4)">
           JACKPOT
@@ -202,16 +216,162 @@ function Cabinet() {
       <rect x={CAB.x + 34} y={METER_Y - 8} width={CAB.w - 68} height="56" rx="10" fill="#0b0624" stroke="url(#cab-gold)" strokeWidth="2" />
 
       {/* button deck */}
-      <path d={`M${CAB.x + 10} ${DECK_Y}H${CAB.x + CAB.w - 10}L${CAB.x + CAB.w + 14} ${DECK_Y + 84}H${CAB.x - 14}Z`} fill="url(#cab-deck)" stroke="url(#cab-gold-h)" strokeWidth="3" />
+      <path
+        d={`M${CAB.x + 10} ${DECK_Y}H${CAB.x + CAB.w - 10}L${CAB.x + CAB.w + 14} ${DECK_Y + 84}H${CAB.x - 14}Z`}
+        fill="url(#cab-deck)"
+        stroke="url(#cab-gold-h)"
+        strokeWidth="3"
+      />
 
       {/* belly panel + coin tray */}
       <rect x={CAB.x + 110} y={DECK_Y + 100} width={CAB.w - 220} height={Math.max(20, H - DECK_Y - 130)} rx="14" fill="#2a0a52" stroke="url(#cab-gold)" strokeWidth="3" />
-      <text x={CX} y={DECK_Y + 100 + Math.max(20, H - DECK_Y - 130) / 2 + 9} textAnchor="middle" fontFamily="var(--font-display)" fontWeight="900" fontSize="26" letterSpacing="8" fill="url(#cab-gold)">
+      <text
+        x={CX}
+        y={DECK_Y + 100 + Math.max(20, H - DECK_Y - 130) / 2 + 9}
+        textAnchor="middle"
+        fontFamily="var(--font-display)"
+        fontWeight="900"
+        fontSize="26"
+        letterSpacing="8"
+        fill="url(#cab-gold)"
+      >
         LUCKY 7s
       </text>
     </svg>
   )
 }
+
+/** Every reel's full strip, rendered once; spins only move them (see drawReel). */
+const ReelColumns = memo(function ReelColumns({ handle }: { handle: ReelHandle }) {
+  return (
+    <>
+      {/* each reel is its whole strip (plus a repeat of the first rows) sliding under a window: GPU transform only */}
+      {STRIPS.map((strip, r) => (
+        <div key={r} className="pointer-events-none absolute overflow-hidden" style={{ left: reelX(r), top: RY, width: CW, height: ROWS * CH }}>
+          <div
+            ref={(el) => {
+              handle.cols[r] = el
+            }}
+            style={{ willChange: 'transform' }}
+          >
+            <svg width={CW} height={(L + ROWS) * CH} aria-hidden>
+              {[...strip, ...strip.slice(0, ROWS)].map((sym, k) => (
+                <use key={k} href={symHref(sym)} x={(CW - (CH - 14)) / 2} y={k * CH + 7} width={CH - 14} height={CH - 14} />
+              ))}
+            </svg>
+          </div>
+        </div>
+      ))}
+    </>
+  )
+})
+
+const LEVER_H = ROWS * CH + 40
+const PIVOT = LEVER_H * 0.55 + 35
+/** The side lever. Pulling is a one-off CSS animation, so it never re-renders the machine. */
+const Lever = memo(
+  forwardRef<{ pull(): void }, { disabled: boolean; onPull: () => void }>(function Lever({ disabled, onPull }, ref) {
+    const rod = useRef<SVGGElement>(null)
+    const knob = useRef<SVGGElement>(null)
+    useImperativeHandle(ref, () => ({
+      pull() {
+        const timing = { duration: 700, easing: 'ease-in-out' }
+        rod.current?.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(-0.55)', offset: 0.35 }, { transform: 'scaleY(1)' }], timing)
+        knob.current?.animate(
+          [
+            { transform: 'none' },
+            {
+              transform: `translateY(${LEVER_H * 0.55 * 1.55 - 20}px)`,
+              offset: 0.35,
+            },
+            { transform: 'none' },
+          ],
+          timing,
+        )
+      },
+    }))
+    return (
+      <button
+        className="absolute"
+        style={{
+          left: CAB.x + CAB.w - 4,
+          top: RY - 70,
+          width: 70,
+          height: ROWS * CH + 40,
+        }}
+        aria-label="Pull the lever"
+        disabled={disabled}
+        onClick={onPull}
+      >
+        <svg width="70" height={ROWS * CH + 40} overflow="visible" aria-hidden>
+          <defs>
+            <radialGradient id="knob" cx="0.35" cy="0.3" r="0.75">
+              <stop offset="0" stopColor="#ffb0a8" />
+              <stop offset="0.45" stopColor="#e3121f" />
+              <stop offset="1" stopColor="#6a0008" />
+            </radialGradient>
+          </defs>
+          {/* housing */}
+          <rect x="4" y={(ROWS * CH + 40) * 0.55} width="26" height="70" rx="10" fill="url(#cab-gold)" stroke="#7a4a0a" />
+          <g ref={rod} style={{ transformOrigin: `22px ${PIVOT}px` }}>
+            <rect x="18" y="22" width="9" height={(ROWS * CH + 40) * 0.55 + 14} rx="4" fill="url(#cab-gold-h)" stroke="#7a4a0a" strokeWidth="1" />
+          </g>
+          <g ref={knob}>
+            <circle cx="22" cy="20" r="18" fill="url(#knob)" stroke="#5a0008" strokeWidth="1.5" />
+            <ellipse cx="15" cy="12" rx="6" ry="4" fill="#fff" opacity=".6" />
+          </g>
+        </svg>
+      </button>
+    )
+  }),
+)
+
+const LinesGuide = memo(function LinesGuide() {
+  return (
+    <div className="absolute rounded-2xl border border-[#c77dff]/40 bg-black/40 p-4" style={{ left: 60, top: BODY_Y + 10, width: 330 }}>
+      <div className="mb-2 font-display text-[16px] font-extrabold uppercase tracking-[0.25em] text-[#e2b44a]">10 lines</div>
+      <div className="grid grid-cols-2 gap-2">
+        {LINES.map((rows, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-5 text-right font-display text-[13px] font-extrabold" style={{ color: LINE_COLORS[i] }}>
+              {i + 1}
+            </span>
+            <svg width="110" height="34" viewBox="0 0 110 34" aria-label={`Line ${i + 1}`}>
+              {rows.map((_, r) =>
+                [0, 1, 2].map((row) => (
+                  <rect key={`${r}${row}`} x={r * 22 + 1} y={row * 11 + 1} width="20" height="9" rx="2" fill={rows[r] === row ? LINE_COLORS[i] : 'rgba(255,255,255,.1)'} />
+                )),
+              )}
+            </svg>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[13px] leading-snug text-[#d8ccf0]">Wins pay left to right from the first reel. Every line pays; all 10 are always on.</p>
+    </div>
+  )
+})
+
+const PayTable = memo(function PayTable({ lineBet }: { lineBet: number }) {
+  return (
+    <div className="absolute rounded-2xl border border-[#c77dff]/40 bg-black/40 px-4 py-3" style={{ left: W - 372, top: BODY_Y + 60, width: 330 }}>
+      <div className="mb-1 flex items-baseline justify-between">
+        <span className="font-display text-[16px] font-extrabold uppercase tracking-[0.25em] text-[#e2b44a]">Pays</span>
+        <span className="text-[12px] text-[#bfb0dc]">×3 · ×4 · ×5 at {formatMoney(lineBet)}/line</span>
+      </div>
+      {SYMBOLS.map((s: Sym) => (
+        <div key={s} className="flex items-center gap-2 border-t border-white/5 py-[3px]">
+          <SymbolIcon sym={s} size={MOBILE ? 34 : 40} />
+          <div className="grid flex-1 grid-cols-3 text-right font-display text-[15px] font-bold tabular-nums text-[#f6e6b4]">
+            {PAYS[s].slice(1).map((p, k) => (
+              <span key={k}>{formatMoney(p * lineBet)}</span>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="mt-1 text-[12px] text-[#bfb0dc]">Two cherries pay {formatMoney(PAYS.cherry[0] * lineBet)}</div>
+    </div>
+  )
+})
 
 // ---- screen ----
 
@@ -224,9 +384,13 @@ export function SlotsScreen() {
   const [wins, setWins] = useState<LineWin[]>([])
   const [win, setWin] = useState(0)
   const [shownWin, setShownWin] = useState(0)
-  const [pulled, setPulled] = useState(false)
+  const lever = useRef<{ pull(): void }>(null)
   const [big, setBig] = useState(false)
-  const reels = useRef<ReelHandle>({ pos: STRIPS.map((_, r) => (r * 7) % L), els: STRIPS.map(() => []), groups: [], blur: [] })
+  const reels = useRef<ReelHandle>({
+    pos: STRIPS.map((_, r) => (r * 7) % L),
+    cols: [],
+    blurred: [],
+  })
   const total = lineBet * LINES.length
   const affordable = LINE_BETS.filter((b) => b * LINES.length <= Math.min(stack, LIMITS.slots.max))
   const spinning = phase === 'spinning'
@@ -261,9 +425,8 @@ export function SlotsScreen() {
     setWin(0)
     setShownWin(0)
     setBig(false)
-    setPulled(true)
+    lever.current?.pull()
     play('toss')
-    setTimeout(() => setPulled(false), 420)
     const result = spin() // decided up front with the crypto RNG; the reels are steered to it
     const h = reels.current
     const plans = result.stops.map((stop, r) => reelMotion(h.pos[r], stop, r))
@@ -274,8 +437,7 @@ export function SlotsScreen() {
         const t = (now - t0) / 1000
         plans.forEach((p, r) => {
           h.pos[r] = p.at(Math.min(t, p.end))
-          h.blur[r]?.setAttribute('stdDeviation', `0 ${Math.min(6, p.speed(t) / 5).toFixed(1)}`)
-          drawReel(h, r)
+          drawReel(h, r, p.speed(t))
           if (!landed[r] && t >= p.landAt) {
             landed[r] = true
             play('check', { volume: 0.8, rate: 0.9 + r * 0.04 })
@@ -341,26 +503,49 @@ export function SlotsScreen() {
       const row = side ? rows[REELS - 1] : rows[0]
       const same = LINES.map((l, k) => [side ? l[REELS - 1] : l[0], k] as const).filter(([rr]) => rr === row)
       const idx = same.findIndex(([, k]) => k === i)
-      return { i, y: RY + row * CH + CH / 2 + (idx - (same.length - 1) / 2) * 17 }
+      return {
+        i,
+        y: RY + row * CH + CH / 2 + (idx - (same.length - 1) / 2) * 17,
+      }
     })
 
   const meter = (label: string, value: string, glow?: boolean) => (
     <div className="flex-1 text-center">
       <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#e2b44a]/80">{label}</div>
-      <div className={`font-display text-[24px] font-extrabold tabular-nums leading-tight ${glow ? 'text-[#ffe066] drop-shadow-[0_0_8px_rgba(255,224,102,.8)]' : 'text-[#ff5a4a]'}`}>{value}</div>
+      <div
+        className={`font-display text-[24px] font-extrabold tabular-nums leading-tight ${glow ? 'text-[#ffe066] drop-shadow-[0_0_8px_rgba(255,224,102,.8)]' : 'text-[#ff5a4a]'}`}
+      >
+        {value}
+      </div>
     </div>
   )
   const deckBtn = 'grid place-items-center rounded-xl font-display font-extrabold uppercase tracking-wide transition active:translate-y-0.5 disabled:opacity-40'
 
   return (
-    <div className="h-full" style={{ background: 'radial-gradient(ellipse at 50% 40%, #2a0f4a 0%, #120622 55%, #050208 100%)' }}>
+    <div
+      className="h-full"
+      style={{
+        background: 'radial-gradient(ellipse at 50% 40%, #2a0f4a 0%, #120622 55%, #050208 100%)',
+      }}
+    >
       <Stage size={{ w: W, h: H }}>
-        <div className={`absolute inset-0 ${spinning || phase === 'won' ? 'slots-fast' : ''}`}>
-          <Cabinet />
+        <Cabinet />
+        {/* Animated parts sit in their own small layers so a frame never repaints the whole cabinet. */}
+        <div className={spinning || phase === 'won' ? 'slots-fast' : ''}>
+          <Bulbs parity={0} />
+          <Bulbs parity={1} />
         </div>
 
         {/* jackpot display */}
-        <div className="absolute flex items-center justify-center gap-4 text-center" style={{ left: CAB.x + 34, top: TOP.y, width: CAB.w - 68, height: TOP.h }}>
+        <div
+          className="absolute flex items-center justify-center gap-4 text-center"
+          style={{
+            left: CAB.x + 34,
+            top: TOP.y,
+            width: CAB.w - 68,
+            height: TOP.h,
+          }}
+        >
           <div>
             <div className="font-display text-[14px] font-extrabold uppercase tracking-[0.35em] text-[#e2b44a]">Five 7s on a line</div>
             <div className="font-display font-black tabular-nums leading-none text-[#ffe066] drop-shadow-[0_0_10px_rgba(255,200,60,.7)]" style={{ fontSize: MOBILE ? 30 : 38 }}>
@@ -370,7 +555,15 @@ export function SlotsScreen() {
         </div>
 
         {/* reels: chrome drums */}
-        <svg className="absolute left-0 top-0" width={W} height={H} style={{ pointerEvents: 'none' }} aria-label="Reels" role="img">
+        <svg
+          className="absolute"
+          width={REEL_BOX.w}
+          height={REEL_BOX.h}
+          viewBox={`${REEL_BOX.x} ${REEL_BOX.y} ${REEL_BOX.w} ${REEL_BOX.h}`}
+          style={{ left: REEL_BOX.x, top: REEL_BOX.y, pointerEvents: 'none' }}
+          aria-label="Reels"
+          role="img"
+        >
           <defs>
             <linearGradient id="drum" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="#8d949c" />
@@ -391,46 +584,22 @@ export function SlotsScreen() {
               <stop offset="0.88" stopColor="#000" stopOpacity="0" />
               <stop offset="1" stopColor="#000" stopOpacity=".25" />
             </linearGradient>
-            {STRIPS.map((_, r) => (
-              <clipPath key={r} id={`reel-clip-${r}`}>
-                <rect x={reelX(r)} y={RY} width={CW} height={ROWS * CH} />
-              </clipPath>
-            ))}
-            {STRIPS.map((_, r) => (
-              <filter key={r} id={`reel-blur-${r}`} x="0" y="-20%" width="100%" height="140%">
-                <feGaussianBlur
-                  ref={(el) => {
-                    reels.current.blur[r] = el
-                  }}
-                  stdDeviation="0 0"
-                />
-              </filter>
-            ))}
           </defs>
           {STRIPS.map((_, r) => (
-            <g key={r} clipPath={`url(#reel-clip-${r})`}>
-              <rect x={reelX(r)} y={RY} width={CW} height={ROWS * CH} fill="url(#drum)" />
-              <g transform={`translate(${reelX(r)} ${RY})`} filter={`url(#reel-blur-${r})`}>
-                <g
-                  ref={(el) => {
-                    reels.current.groups[r] = el
-                  }}
-                >
-                  {[0, 1, 2, 3].map((k) => (
-                    <use
-                      key={k}
-                      ref={(el) => {
-                        reels.current.els[r][k] = el
-                      }}
-                      href={symHref(STRIPS[r][k])}
-                      x={(CW - (CH - 14)) / 2}
-                      y={k * CH + 7}
-                      width={CH - 14}
-                      height={CH - 14}
-                    />
-                  ))}
-                </g>
-              </g>
+            <rect key={r} x={reelX(r)} y={RY} width={CW} height={ROWS * CH} fill="url(#drum)" />
+          ))}
+        </svg>
+        <ReelColumns handle={reels.current} />
+        <svg
+          className="absolute"
+          width={REEL_BOX.w}
+          height={REEL_BOX.h}
+          viewBox={`${REEL_BOX.x} ${REEL_BOX.y} ${REEL_BOX.w} ${REEL_BOX.h}`}
+          style={{ left: REEL_BOX.x, top: REEL_BOX.y, pointerEvents: 'none' }}
+          aria-hidden
+        >
+          {STRIPS.map((_, r) => (
+            <g key={r}>
               <rect x={reelX(r)} y={RY} width={CW} height={ROWS * CH} fill="url(#drum-shade)" />
               <rect x={reelX(r)} y={RY} width={CW} height={ROWS * CH} fill="url(#drum-side)" />
             </g>
@@ -439,7 +608,9 @@ export function SlotsScreen() {
           {phase !== 'spinning' &&
             [...winCells].map((k) => {
               const [r, row] = k.split(':').map(Number)
-              return <rect key={k} x={reelX(r) + 3} y={RY + row * CH + 3} width={CW - 6} height={CH - 6} rx="10" fill="none" stroke="#ffe066" strokeWidth="4" className="win-cell" />
+              return (
+                <rect key={k} x={reelX(r) + 3} y={RY + row * CH + 3} width={CW - 6} height={CH - 6} rx="10" fill="none" stroke="#ffe066" strokeWidth="4" className="win-cell" />
+              )
             })}
           {phase !== 'spinning' &&
             wins.map((w) => (
@@ -452,7 +623,9 @@ export function SlotsScreen() {
                 strokeLinejoin="round"
                 strokeLinecap="round"
                 opacity=".9"
-                style={{ filter: `drop-shadow(0 0 4px ${LINE_COLORS[w.line]})` }}
+                style={{
+                  filter: `drop-shadow(0 0 4px ${LINE_COLORS[w.line]})`,
+                }}
               />
             ))}
           {/* line number tabs */}
@@ -472,22 +645,48 @@ export function SlotsScreen() {
         </svg>
 
         {/* meters */}
-        <div className="absolute flex items-center" style={{ left: CAB.x + 34, top: METER_Y - 8, width: CAB.w - 68, height: 56 }}>
+        <div
+          className="absolute flex items-center"
+          style={{
+            left: CAB.x + 34,
+            top: METER_Y - 8,
+            width: CAB.w - 68,
+            height: 56,
+          }}
+        >
           {meter('Credit', formatMoney(stack))}
           {meter('Bet', `${formatMoney(total)}`)}
           {meter('Win', formatMoney(shownWin), shownWin > 0)}
         </div>
 
         {/* button deck */}
-        <div className="absolute flex items-center justify-center gap-3" style={{ left: CAB.x + 20, top: DECK_Y + 14, width: CAB.w - 40, height: 58 }}>
-          <button className={`${deckBtn} h-12 w-16 bg-[linear-gradient(180deg,#5b5be0,#23237a)] text-[22px] text-white ring-2 ring-[#aab4ff]/60`} disabled={spinning || LINE_BETS.indexOf(lineBet) === 0} onClick={() => step(-1)} aria-label="Lower bet">
+        <div
+          className="absolute flex items-center justify-center gap-3"
+          style={{
+            left: CAB.x + 20,
+            top: DECK_Y + 14,
+            width: CAB.w - 40,
+            height: 58,
+          }}
+        >
+          <button
+            className={`${deckBtn} h-12 w-16 bg-[linear-gradient(180deg,#5b5be0,#23237a)] text-[22px] text-white ring-2 ring-[#aab4ff]/60`}
+            disabled={spinning || LINE_BETS.indexOf(lineBet) === 0}
+            onClick={() => step(-1)}
+            aria-label="Lower bet"
+          >
             −
           </button>
           <div className="w-24 text-center">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e2b44a]/80">Per line</div>
             <div className="font-display text-[20px] font-extrabold tabular-nums text-white">{formatMoney(lineBet)}</div>
           </div>
-          <button className={`${deckBtn} h-12 w-16 bg-[linear-gradient(180deg,#5b5be0,#23237a)] text-[22px] text-white ring-2 ring-[#aab4ff]/60`} disabled={spinning || lineBet === affordable.at(-1)} onClick={() => step(1)} aria-label="Raise bet">
+          <button
+            className={`${deckBtn} h-12 w-16 bg-[linear-gradient(180deg,#5b5be0,#23237a)] text-[22px] text-white ring-2 ring-[#aab4ff]/60`}
+            disabled={spinning || lineBet === affordable.at(-1)}
+            onClick={() => step(1)}
+            aria-label="Raise bet"
+          >
             +
           </button>
           <button
@@ -498,81 +697,32 @@ export function SlotsScreen() {
             Max bet
           </button>
           <button
-            className={`${deckBtn} h-14 w-40 bg-[radial-gradient(circle_at_50%_30%,#ff7a6e,#c4101c_60%,#6a0008)] text-[24px] text-white ring-4 ring-[#ffd0c8]/70 shadow-[0_0_24px_rgba(255,60,60,.6)] ${spinning ? '' : 'animate-[glow-pulse_1.6s_ease-in-out_infinite]'}`}
+            className={`${deckBtn} h-14 w-40 bg-[radial-gradient(circle_at_50%_30%,#ff7a6e,#c4101c_60%,#6a0008)] text-[24px] text-white ring-4 ring-[#ffd0c8]/70 relative shadow-[0_0_24px_rgba(255,60,60,.6)]`}
             disabled={spinning || total > stack}
             onClick={() => void doSpin()}
           >
+            {!spinning && (
+              <span className="pointer-events-none absolute -inset-1 rounded-2xl shadow-[0_0_22px_6px_rgba(255,90,80,.75)] animate-[glow-pulse_1.6s_ease-in-out_infinite]" />
+            )}
             {spinning ? '…' : 'Spin'}
           </button>
         </div>
 
-        {/* lever */}
-        <button
-          className="absolute"
-          style={{ left: CAB.x + CAB.w - 4, top: RY - 70, width: 70, height: ROWS * CH + 40 }}
-          aria-label="Pull the lever"
-          disabled={spinning || total > stack}
-          onClick={() => void doSpin()}
-        >
-          <svg width="70" height={ROWS * CH + 40} overflow="visible" aria-hidden>
-            <defs>
-              <radialGradient id="knob" cx="0.35" cy="0.3" r="0.75">
-                <stop offset="0" stopColor="#ffb0a8" />
-                <stop offset="0.45" stopColor="#e3121f" />
-                <stop offset="1" stopColor="#6a0008" />
-              </radialGradient>
-            </defs>
-            {/* housing */}
-            <rect x="4" y={(ROWS * CH + 40) * 0.55} width="26" height="70" rx="10" fill="url(#cab-gold)" stroke="#7a4a0a" />
-            <g style={{ transformOrigin: `22px ${(ROWS * CH + 40) * 0.55 + 35}px`, transform: `scaleY(${pulled ? -0.55 : 1})`, transition: 'transform 220ms cubic-bezier(.3,.7,.4,1)' }}>
-              <rect x="18" y="22" width="9" height={(ROWS * CH + 40) * 0.55 + 14} rx="4" fill="url(#cab-gold-h)" stroke="#7a4a0a" strokeWidth="1" />
-            </g>
-            <g style={{ transform: `translateY(${pulled ? (ROWS * CH + 40) * 0.55 * 1.55 - 20 : 0}px)`, transition: 'transform 220ms cubic-bezier(.3,.7,.4,1)' }}>
-              <circle cx="22" cy="20" r="18" fill="url(#knob)" stroke="#5a0008" strokeWidth="1.5" />
-              <ellipse cx="15" cy="12" rx="6" ry="4" fill="#fff" opacity=".6" />
-            </g>
-          </svg>
-        </button>
+        <Lever ref={lever} disabled={spinning || total > stack} onPull={() => void doSpin()} />
 
-        {/* paylines guide (left) */}
-        <div className="absolute rounded-2xl border border-[#c77dff]/40 bg-black/40 p-4" style={{ left: 60, top: BODY_Y + 10, width: 330 }}>
-          <div className="mb-2 font-display text-[16px] font-extrabold uppercase tracking-[0.25em] text-[#e2b44a]">10 lines</div>
-          <div className="grid grid-cols-2 gap-2">
-            {LINES.map((rows, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="w-5 text-right font-display text-[13px] font-extrabold" style={{ color: LINE_COLORS[i] }}>
-                  {i + 1}
-                </span>
-                <svg width="110" height="34" viewBox="0 0 110 34" aria-label={`Line ${i + 1}`}>
-                  {rows.map((_, r) => [0, 1, 2].map((row) => <rect key={`${r}${row}`} x={r * 22 + 1} y={row * 11 + 1} width="20" height="9" rx="2" fill={rows[r] === row ? LINE_COLORS[i] : 'rgba(255,255,255,.1)'} />))}
-                </svg>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-[13px] leading-snug text-[#d8ccf0]">Wins pay left to right from the first reel. Every line pays; all 10 are always on.</p>
-        </div>
+        <LinesGuide />
 
-        {/* paytable (right) */}
-        <div className="absolute rounded-2xl border border-[#c77dff]/40 bg-black/40 px-4 py-3" style={{ left: W - 372, top: BODY_Y + 60, width: 330 }}>
-          <div className="mb-1 flex items-baseline justify-between">
-            <span className="font-display text-[16px] font-extrabold uppercase tracking-[0.25em] text-[#e2b44a]">Pays</span>
-            <span className="text-[12px] text-[#bfb0dc]">×3 · ×4 · ×5 at {formatMoney(lineBet)}/line</span>
-          </div>
-          {SYMBOLS.map((s: Sym) => (
-            <div key={s} className="flex items-center gap-2 border-t border-white/5 py-[3px]">
-              <SymbolIcon sym={s} size={MOBILE ? 34 : 40} />
-              <div className="grid flex-1 grid-cols-3 text-right font-display text-[15px] font-bold tabular-nums text-[#f6e6b4]">
-                {PAYS[s].slice(1).map((p, k) => (
-                  <span key={k}>{formatMoney(p * lineBet)}</span>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className="mt-1 text-[12px] text-[#bfb0dc]">Two cherries pay {formatMoney(PAYS.cherry[0] * lineBet)}</div>
-        </div>
+        <PayTable lineBet={lineBet} />
 
         {big && (
-          <div className="pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 text-center" style={{ top: RY + (ROWS * CH) / 2 - 60, animation: 'banner-in .5s ease-out' }} role="status">
+          <div
+            className="pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 text-center"
+            style={{
+              top: RY + (ROWS * CH) / 2 - 60,
+              animation: 'banner-in .5s ease-out',
+            }}
+            role="status"
+          >
             <div className="gold-text font-display text-[88px] font-black leading-none drop-shadow-[0_6px_20px_rgba(0,0,0,.8)]">BIG WIN</div>
             <div className="font-display text-[40px] font-extrabold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,.9)]">{formatMoney(win)}</div>
           </div>
