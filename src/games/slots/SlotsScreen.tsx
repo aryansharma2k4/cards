@@ -40,20 +40,14 @@ const mod = (a: number, m: number) => ((a % m) + m) % m
 interface ReelHandle {
   pos: number[]
   cols: (HTMLDivElement | null)[]
-  blurred: boolean[]
 }
 
 /** Slide a reel's strip so row 0 shows strip index `pos` (the strip repeats its first rows at the end). */
-function drawReel(h: ReelHandle, r: number, speed = 0) {
+function drawReel(h: ReelHandle, r: number) {
   const el = h.cols[r]
   if (!el) return
+  // no blur filter on purpose: filters on these tall layers are costly for phone GPUs
   el.style.transform = `translate3d(0, ${(-mod(h.pos[r], L) * CH).toFixed(1)}px, 0)`
-  // motion blur while the reel is really moving; toggled rarely so it stays on the GPU
-  const blur = speed > 8
-  if (blur !== h.blurred[r]) {
-    h.blurred[r] = blur
-    el.style.filter = blur ? 'blur(1.6px)' : ''
-  }
 }
 
 /** Plan of one reel's spin: a small kick up, a fast roll down, a stop with a little bounce. */
@@ -74,11 +68,6 @@ function reelMotion(p0: number, stop: number, reel: number) {
       if (u < 1) return p0 - d * (1 - (1 - u) ** 2.2)
       const b = Math.min(1, (t - kick - T) / bounce)
       return p1 - 0.22 * Math.sin(Math.PI * b) * (1 - b)
-    },
-    speed(t: number) {
-      if (t < kick || t > kick + T) return 0
-      const u = (t - kick) / T
-      return (2.2 * d * (1 - u) ** 1.2) / T
     },
     p1,
   }
@@ -147,9 +136,6 @@ function Cabinet() {
         <pattern id="bulb-dots" width="9" height="9" patternUnits="userSpaceOnUse">
           <circle cx="4.5" cy="4.5" r="2.3" fill="#fffbe0" />
         </pattern>
-        <filter id="neon" x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
       </defs>
 
       {/* candle */}
@@ -177,7 +163,6 @@ function Cabinet() {
       </g>
 
       {/* body with neon edge */}
-      <rect x={CAB.x - 4} y={BODY_Y - 4} width={CAB.w + 8} height={bodyH + 8} rx="34" fill="#c77dff" opacity="0.55" filter="url(#neon)" />
       <rect x={CAB.x} y={BODY_Y} width={CAB.w} height={bodyH} rx="30" fill="url(#cab-body)" stroke="#e6c2ff" strokeWidth="4" />
       <rect x={CAB.x + 14} y={BODY_Y + 8} width={CAB.w - 28} height={bodyH - 16} rx="22" fill="none" stroke="#9a5cf0" strokeOpacity=".5" strokeWidth="2" />
 
@@ -389,7 +374,6 @@ export function SlotsScreen() {
   const reels = useRef<ReelHandle>({
     pos: STRIPS.map((_, r) => (r * 7) % L),
     cols: [],
-    blurred: [],
   })
   const total = lineBet * LINES.length
   const affordable = LINE_BETS.filter((b) => b * LINES.length <= Math.min(stack, LIMITS.slots.max))
@@ -437,7 +421,7 @@ export function SlotsScreen() {
         const t = (now - t0) / 1000
         plans.forEach((p, r) => {
           h.pos[r] = p.at(Math.min(t, p.end))
-          drawReel(h, r, p.speed(t))
+          drawReel(h, r)
           if (!landed[r] && t >= p.landAt) {
             landed[r] = true
             play('check', { volume: 0.8, rate: 0.9 + r * 0.04 })
@@ -513,7 +497,7 @@ export function SlotsScreen() {
     <div className="flex-1 text-center">
       <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#e2b44a]/80">{label}</div>
       <div
-        className={`font-display text-[24px] font-extrabold tabular-nums leading-tight ${glow ? 'text-[#ffe066] drop-shadow-[0_0_8px_rgba(255,224,102,.8)]' : 'text-[#ff5a4a]'}`}
+        className={`font-display text-[24px] font-extrabold tabular-nums leading-tight ${glow ? 'text-[#ffe066] [text-shadow:0_0_8px_rgba(255,224,102,.8)]' : 'text-[#ff5a4a]'}`}
       >
         {value}
       </div>
@@ -529,6 +513,8 @@ export function SlotsScreen() {
       }}
     >
       <Stage size={{ w: W, h: H }}>
+        {/* neon glow round the cabinet: a plain box-shadow, painted once */}
+        <div className="absolute rounded-[30px]" style={{ left: CAB.x, top: BODY_Y, width: CAB.w, height: H - BODY_Y - 6, boxShadow: '0 0 22px 6px rgba(199,125,255,.55)' }} />
         <Cabinet />
         {/* Animated parts sit in their own small layers so a frame never repaints the whole cabinet. */}
         <div className={spinning || phase === 'won' ? 'slots-fast' : ''}>
@@ -548,7 +534,7 @@ export function SlotsScreen() {
         >
           <div>
             <div className="font-display text-[14px] font-extrabold uppercase tracking-[0.35em] text-[#e2b44a]">Five 7s on a line</div>
-            <div className="font-display font-black tabular-nums leading-none text-[#ffe066] drop-shadow-[0_0_10px_rgba(255,200,60,.7)]" style={{ fontSize: MOBILE ? 30 : 38 }}>
+            <div className="font-display font-black tabular-nums leading-none text-[#ffe066] [text-shadow:0_0_10px_rgba(255,200,60,.7)]" style={{ fontSize: MOBILE ? 30 : 38 }}>
               {formatMoney(PAYS.seven[3] * lineBet)}
             </div>
           </div>
@@ -615,6 +601,19 @@ export function SlotsScreen() {
           {phase !== 'spinning' &&
             wins.map((w) => (
               <polyline
+                key={`glow-${w.line}`}
+                points={LINES[w.line].map((row, r) => cellCenter(r, row).join(',')).join(' ')}
+                fill="none"
+                stroke={LINE_COLORS[w.line]}
+                strokeWidth="13"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                opacity=".3"
+              />
+            ))}
+          {phase !== 'spinning' &&
+            wins.map((w) => (
+              <polyline
                 key={w.line}
                 points={LINES[w.line].map((row, r) => cellCenter(r, row).join(',')).join(' ')}
                 fill="none"
@@ -623,9 +622,6 @@ export function SlotsScreen() {
                 strokeLinejoin="round"
                 strokeLinecap="round"
                 opacity=".9"
-                style={{
-                  filter: `drop-shadow(0 0 4px ${LINE_COLORS[w.line]})`,
-                }}
               />
             ))}
           {/* line number tabs */}
@@ -723,8 +719,8 @@ export function SlotsScreen() {
             }}
             role="status"
           >
-            <div className="gold-text font-display text-[88px] font-black leading-none drop-shadow-[0_6px_20px_rgba(0,0,0,.8)]">BIG WIN</div>
-            <div className="font-display text-[40px] font-extrabold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,.9)]">{formatMoney(win)}</div>
+            <div className="gold-text font-display text-[88px] font-black leading-none [filter:drop-shadow(0_6px_20px_rgba(0,0,0,.8))]">BIG WIN</div>
+            <div className="font-display text-[40px] font-extrabold text-white [text-shadow:0_4px_12px_rgba(0,0,0,.9)]">{formatMoney(win)}</div>
           </div>
         )}
       </Stage>
